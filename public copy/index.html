@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>PDF → Podcast (TS)</title>
+  <style>
+    body { font-family: system-ui, Arial; max-width: 800px; margin: 36px auto; padding:16px; }
+    .card { border: 1px solid #eee; padding: 12px; border-radius: 8px; }
+    pre { white-space: pre-wrap; background: #fafafa; padding: 12px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>PDF → Podcast (TypeScript)</h1>
+  <div class="card">
+    <input id="pdf" type="file" accept="application/pdf">
+    <button id="go">Generate</button>
+    <div id="status"></div>
+  </div>
+
+  <div id="result" style="display:none; margin-top:16px;">
+    <h3>Summary</h3>
+    <pre id="summary"></pre>
+
+    <h3>Key Points</h3>
+    <ul id="keys"></ul>
+
+    <h3>Script</h3>
+    <pre id="script"></pre>
+
+    <h3>Audio</h3>
+    <audio id="player" controls></audio>
+  </div>
+
+  <script>
+    const go = document.getElementById("go");
+    const pdf = document.getElementById("pdf");
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
+    const summaryEl = document.getElementById("summary");
+    const keysEl = document.getElementById("keys");
+    const scriptEl = document.getElementById("script");
+    const player = document.getElementById("player");
+
+    go.onclick = async () => {
+      const file = pdf.files[0];
+      if (!file) return alert("choose a PDF");
+      status.textContent = "Uploading and generating... this may take a minute";
+      go.disabled = true;
+
+      const fd = new FormData();
+      fd.append("pdf", file);
+
+      try {
+        const r = await fetch("/api/generate", { method: "POST", body: fd });
+        if (!r.ok) {
+          const err = await r.json();
+          status.textContent = "Error: " + (err.error || JSON.stringify(err));
+          go.disabled = false;
+          return;
+        }
+        const data = await r.json();
+        summaryEl.textContent = data.summary || "";
+        scriptEl.textContent = data.script || "";
+        keysEl.innerHTML = "";
+        (data.keyPoints || []).forEach(k => {
+          const li = document.createElement("li"); li.textContent = k; keysEl.appendChild(li);
+        });
+
+        if (data.audioUrl) {
+          player.src = data.audioUrl;
+          player.load();
+        } else {
+          player.src = "";
+        }
+
+        result.style.display = "block";
+        status.textContent = "Done.";
+      } catch (e) {
+        status.textContent = "Error: " + e.message;
+      } finally {
+        go.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>
