@@ -1,4 +1,31 @@
+# dependencies
 node_modules
-package-lock.json
+
+# build output
+dist
+.next
+out
+
+# env / secrets
+.env
+.env.local
+.env.*.local
+env.config
+
+# runtime artifacts
 uploads/*
 public/audio/*
+!public/audio/.gitkeep
+
+# test / coverage
+coverage
+
+# eval output
+lib/eval/results/*
+!lib/eval/results/.gitkeep
+
+# os
+.DS_Store
+
+# local test inputs (not part of the repo)
+sample_papers/
