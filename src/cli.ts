@@ -33,6 +33,9 @@ function parseArgs(argv: string[]): Args {
     return i !== -1 ? rest[i + 1] : undefined;
   };
   const providerArg = get("--provider");
+  console.log(providerArg);
+  console.log(get("--minutes"));
+  console.log(get("--out"));
   return {
     pdfPath,
     minutes: Number(get("--minutes") ?? 10),
