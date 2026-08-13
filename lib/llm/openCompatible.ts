@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { openConfig } from "../config/env.js";
+import { assertNoSilentTruncation } from "./contextGuard.js";
 import type { LLMProvider, StructuredRequest, StructuredResult, Usage } from "./types.js";
 
 const MAX_RETRIES = 3;
@@ -49,6 +50,18 @@ ${JSON.stringify(jsonSchema)}`;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       const completion = await this.chat(messages, req);
       const content = completion.choices[0]?.message?.content ?? "";
+
+      // Verify the server actually ingested the prompt before trusting anything
+      // it says. Checked on the first attempt, when `messages` is exactly what
+      // we composed; retries append correction turns and only grow from here.
+      if (attempt === 0) {
+        assertNoSilentTruncation({
+          sentText: system + req.user,
+          processedTokens: completion.usage?.prompt_tokens,
+          model: this.model,
+        });
+      }
+
       usage.inputTokens = (usage.inputTokens ?? 0) + (completion.usage?.prompt_tokens ?? 0);
       usage.outputTokens =
         (usage.outputTokens ?? 0) + (completion.usage?.completion_tokens ?? 0);

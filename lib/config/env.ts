@@ -47,5 +47,5 @@ export const openConfig = () => ({
   baseURL: opt("OPEN_BASE_URL", "http://localhost:11434/v1"),
   // Local runtimes (Ollama) accept any non-empty key.
   apiKey: opt("OPEN_API_KEY", "ollama"),
-  model: opt("OPEN_MODEL", "llama3.3:70b"),
+  model: opt("OPEN_MODEL", "qwen2:7b"),
 });

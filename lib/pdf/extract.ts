@@ -21,6 +21,10 @@ export interface PaperStructure {
   wordCount: number;
 }
 
+/** Bounds on how far a wrapped title may run before we stop joining lines. */
+const MAX_TITLE_LINES = 3;
+const MAX_TITLE_CHARS = 250;
+
 /** Sections we drop wholesale — they add noise and invite fabricated citations. */
 const STRIP_HEADINGS = [
   "references",
@@ -103,6 +107,33 @@ function isHeading(rawLine: string): boolean {
   return false;
 }
 
+/**
+ * Detect an author or affiliation line, which marks the end of a wrapped title.
+ * Not every paper leaves a blank line between the two, so the title joiner
+ * needs a content signal as well as a layout one.
+ */
+function looksLikeAuthorLine(line: string): boolean {
+  // Email addresses only ever appear in the author block.
+  if (line.includes("@")) return true;
+
+  // Affiliation keywords.
+  if (
+    /\b(universit|institute|department|college|laborator|labs?|school of|academy|research cent(er|re)|inc\.|ltd\.|llc|gmbh|corporation)\b/i.test(
+      line,
+    )
+  ) {
+    return true;
+  }
+
+  // "Firstname Lastname, …" — a personal name immediately followed by a comma.
+  if (/^[A-Z][a-z]+\s+[A-Z][a-zA-Z.'’-]+\s*,/.test(line)) return true;
+
+  // A comma-separated list of three or more fragments.
+  if ((line.match(/,/g) ?? []).length >= 2) return true;
+
+  return false;
+}
+
 /** Strip figure/table caption lines and page-number artifacts from a block. */
 function cleanBlock(text: string): string {
   return text
@@ -131,14 +162,31 @@ export function parsePaperStructure(raw: string): PaperStructure {
   const text = raw.replace(/\r\n?/g, "\n").replace(/\f/g, "\n");
   const lines = text.split("\n");
 
-  // Title: first substantial non-empty line.
+  // Title: the first substantial line, plus any wrapped continuation lines.
+  // Flattened PDFs break a long title across several lines with no punctuation
+  // to mark the join, so we keep appending until a blank line or a heading ends
+  // the block — bounded so a title-less document can't swallow the body.
   let title = "";
   let firstContentIdx = 0;
   for (let i = 0; i < lines.length; i++) {
     const t = lines[i]!.trim();
     if (t.length >= 4 && !isHeading(t)) {
-      title = t;
-      firstContentIdx = i + 1;
+      const parts = [t];
+      let j = i + 1;
+      while (
+        j < lines.length &&
+        parts.length < MAX_TITLE_LINES &&
+        parts.join(" ").length < MAX_TITLE_CHARS
+      ) {
+        const next = lines[j]!.trim();
+        if (!next || isHeading(next) || looksLikeAuthorLine(next)) break;
+        parts.push(next);
+        j++;
+      }
+      title = parts.join(" ").replace(/\s+/g, " ").trim();
+      // `j` indexes the terminating blank/heading line, which the section loop
+      // below still needs to see.
+      firstContentIdx = j;
       break;
     }
   }

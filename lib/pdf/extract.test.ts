@@ -75,6 +75,55 @@ describe("parsePaperStructure", () => {
   });
 });
 
+describe("multi-line titles", () => {
+  // Mirrors the real line layout of the Amazon Aurora paper, where the title
+  // wraps across two lines and is terminated by a whitespace-only line.
+  const WRAPPED = `
+
+
+
+Amazon Aurora: Design Considerations for High
+Throughput Cloud-Native Relational Databases
+
+Alexandre Verbitski, Anurag Gupta, Debanjan Saha
+
+Amazon Web Services
+ABSTRACT
+Amazon Aurora is a relational database service for OLTP workloads.
+
+1 Introduction
+Databases are hard.
+`;
+
+  it("joins wrapped title lines into one title", () => {
+    const paper = parsePaperStructure(WRAPPED);
+    expect(paper.title).toBe(
+      "Amazon Aurora: Design Considerations for High Throughput Cloud-Native Relational Databases",
+    );
+  });
+
+  it("still finds the abstract and sections after a wrapped title", () => {
+    const paper = parsePaperStructure(WRAPPED);
+    expect(paper.abstract).toContain("relational database service");
+    expect(paper.sections.some((s) => s.heading.includes("Introduction"))).toBe(true);
+  });
+
+  it("stops at a heading rather than absorbing it", () => {
+    const paper = parsePaperStructure("A Short Title\nABSTRACT\nBody text here.");
+    expect(paper.title).toBe("A Short Title");
+    expect(paper.abstract).toContain("Body text here");
+  });
+
+  it("does not run past the line bound on a title-less document", () => {
+    const runOn = Array.from({ length: 10 }, (_, i) => `line number ${i} of prose`).join(
+      "\n",
+    );
+    const paper = parsePaperStructure(runOn);
+    expect(paper.title.length).toBeLessThanOrEqual(250);
+    expect(paper.title.split(" of prose").length - 1).toBeLessThanOrEqual(3);
+  });
+});
+
 describe("parsePaperStructure fallback", () => {
   it("handles text with no detectable headings and truncates references", () => {
     const raw =
