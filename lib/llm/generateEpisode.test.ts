@@ -3,6 +3,7 @@ import {
   generateEpisode,
   estimateOutputTokens,
   buildUserContent,
+  targetTurnCount,
 } from "./generateEpisode.js";
 import type { LLMProvider, StructuredRequest, StructuredResult } from "./types.js";
 import type { PaperStructure } from "../pdf/extract.js";
@@ -61,6 +62,54 @@ describe("generateEpisode", () => {
     const result = await generateEpisode(big, { provider, maxInputChars: 100 });
     expect(result.truncatedInput).toBe(true);
     expect(provider.last?.user).toContain("truncated");
+  });
+});
+
+describe("speaker and show-name guardrails", () => {
+  it("pins the show name so the model cannot invent one", async () => {
+    const provider = new StubProvider();
+    await generateEpisode(PAPER, { provider });
+    expect(provider.last?.system).toContain("PaperCast");
+    expect(provider.last?.system).toMatch(/never invent a different show name/i);
+  });
+
+  it("accepts a custom show name", async () => {
+    const provider = new StubProvider();
+    await generateEpisode(PAPER, { provider, showName: "Lab Notes" });
+    expect(provider.last?.system).toContain("Lab Notes");
+    expect(provider.last?.system).not.toContain("PaperCast");
+  });
+
+  it("uses no honorific in the default speaker names", async () => {
+    const provider = new StubProvider();
+    await generateEpisode(PAPER, { provider });
+    // "Dr. Rivera" previously implied credentials neither speaker has.
+    expect(provider.last?.system).not.toMatch(/\bDr\.\s/);
+  });
+
+  it("forbids fabricated credentials and author impersonation", async () => {
+    const provider = new StubProvider();
+    await generateEpisode(PAPER, { provider });
+    const sys = provider.last!.system;
+    expect(sys).toMatch(/neither speaker wrote the paper/i);
+    expect(sys).toMatch(/no credentials|no credentials, degrees/i);
+    expect(sys).toMatch(/never "we found"|never "we found", "our method"/i);
+  });
+});
+
+describe("targetTurnCount", () => {
+  it("scales with length and enforces a conversational floor", () => {
+    expect(targetTurnCount(4)).toBe(14);
+    expect(targetTurnCount(1)).toBeGreaterThanOrEqual(6);
+    expect(targetTurnCount(10)).toBeGreaterThan(targetTurnCount(4));
+  });
+
+  it("states the turn floor and word target in the prompt", async () => {
+    const provider = new StubProvider();
+    await generateEpisode(PAPER, { provider, minutes: 4 });
+    const sys = provider.last!.system;
+    expect(sys).toContain("at least 14 turns");
+    expect(sys).toContain("600 words");
   });
 });
 

@@ -17,6 +17,8 @@ export interface GenerateEpisodeOptions {
   minutes?: number;
   /** Inject a provider (for tests/overrides); defaults to env selection. */
   provider?: LLMProvider;
+  /** Name of the show. Fixed here so the model cannot invent one. */
+  showName?: string;
   hostName?: string;
   guestName?: string;
   /**
@@ -42,8 +44,12 @@ export async function generateEpisode(
   opts: GenerateEpisodeOptions = {},
 ): Promise<EpisodeResult> {
   const minutes = opts.minutes ?? 10;
+  const showName = opts.showName ?? "PaperCast";
+  // Plain first names only: an honorific or title implies credentials that
+  // neither speaker has, since both are presenters discussing someone
+  // else's work.
   const host = opts.hostName ?? "Alex";
-  const guest = opts.guestName ?? "Dr. Rivera";
+  const guest = opts.guestName ?? "Sam";
   const maxInputChars = opts.maxInputChars ?? 120_000;
   const provider = opts.provider ?? getProvider();
 
@@ -52,7 +58,7 @@ export async function generateEpisode(
   const paperText = truncatedInput ? fullText.slice(0, maxInputChars) : fullText;
 
   const wordTarget = minutes * WORDS_PER_MINUTE;
-  const system = buildSystemPrompt({ minutes, wordTarget, host, guest });
+  const system = buildSystemPrompt({ minutes, wordTarget, showName, host, guest });
   const user = buildUserContent(paperText, truncatedInput);
 
   const result = await provider.generateStructured({
@@ -78,10 +84,12 @@ export async function generateEpisode(
 export function buildSystemPrompt(args: {
   minutes: number;
   wordTarget: number;
+  showName: string;
   host: string;
   guest: string;
 }): string {
-  const { minutes, wordTarget, host, guest } = args;
+  const { minutes, wordTarget, showName, host, guest } = args;
+  const targetTurns = targetTurnCount(minutes);
   return `You are an expert science communicator who turns a single academic paper into an engaging, accurate podcast episode.
 
 FAITHFULNESS — this is the top priority:
@@ -90,14 +98,20 @@ FAITHFULNESS — this is the top priority:
 - If the paper is ambiguous or silent on something, either omit it or say the paper does not specify — do not fill the gap with a guess.
 - Prefer the paper's own framing and terminology; spell out each acronym the first time you use it.
 
-FORMAT:
+FORMAT AND LENGTH — both requirements are mandatory:
 - Produce a summary (problem, approach, key results, limitations), a list of concise key points, and the episode as a two-host dialogue.
-- The dialogue is between ${host} (the host, who guides the conversation and asks clarifying questions) and ${guest} (an expert guest who explains the work).
-- Alternate speakers naturally. ${host} opens with a brief welcome and closes with a short wrap-up. No music, sound effects, or stage directions.
+- The dialogue must contain at least ${targetTurns} turns, strictly alternating between ${host} and ${guest}. A turn is one person speaking, typically two to four sentences — not a monologue.
+- The dialogue must total roughly ${wordTarget} words (about ${minutes} minutes at ${WORDS_PER_MINUTE} words/minute). This is a real target, not an upper bound; a short episode is a failed one.
+- ${host} guides the conversation and asks the questions a curious listener would ask. ${guest} has read the paper closely and answers them, one idea at a time.
+- ${host} opens with a brief welcome and closes with a short wrap-up. No music, sound effects, or stage directions.
 - Write spoken language: contractions, short sentences, no markdown, no bullet points inside the dialogue.
+- Cover the paper's core contributions in proportion to their importance rather than padding.
 
-LENGTH:
-- Target roughly ${wordTarget} words of dialogue (about ${minutes} minutes at ${WORDS_PER_MINUTE} words/minute). Cover the paper's core contributions in proportion to their importance rather than padding.`;
+SPEAKERS — the second thing you must not fabricate:
+- The show is called "${showName}". Use exactly that name if the opening names the show, and never invent a different show name, episode number, or reference to a previous episode.
+- Neither speaker wrote the paper. Attribute the work to its authors — "the authors found", "the paper argues" — and never "we found", "our method", or "in our experiments".
+- Give the speakers no credentials, degrees, honorifics, job titles, employers, or institutions, and never describe either as an expert in a field.
+- Invent no sponsors, no listener questions, and no biographical detail of any kind.`;
 }
 
 export function buildUserContent(paperText: string, truncated: boolean): string {
@@ -105,6 +119,15 @@ export function buildUserContent(paperText: string, truncated: boolean): string 
     ? "\n\n[Note: the paper text below was truncated to fit; base the episode only on what is present.]"
     : "";
   return `Here is the paper to adapt into a podcast episode.${note}\n\n${paperText}`;
+}
+
+/**
+ * Minimum dialogue turns for a given length. Roughly 3–4 exchanges a minute
+ * keeps the pacing conversational; without an explicit floor, models collapse
+ * the episode into a few long monologues.
+ */
+export function targetTurnCount(minutes: number): number {
+  return Math.min(60, Math.max(6, Math.round(minutes * 3.5)));
 }
 
 /** Output token budget from target minutes (dialogue + summary + key points). */
