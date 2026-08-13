@@ -25,9 +25,12 @@ export class ContextTruncationError extends Error {
         `but "${model}" reported processing only ${processedTokens.toLocaleString()}. ` +
         `Any output would describe a document the model never fully saw.\n\n` +
         `Fix one of the following:\n` +
-        `  • Raise the server's context window. For Ollama, restart it with a larger limit:\n` +
-        `      OLLAMA_CONTEXT_LENGTH=32768 ollama serve\n` +
-        `    (Ollama defaults to 4096 and ignores num_ctx over the OpenAI-compatible API.)\n` +
+        `  • Raise the context window. Ollama defaults every model to 4096 and ignores\n` +
+        `    num_ctx over its OpenAI-compatible API, so bake it into a derived model:\n` +
+        `      ollama create qwen2:7b-32k -f ollama/qwen2-32k.Modelfile\n` +
+        `      OPEN_MODEL=qwen2:7b-32k\n` +
+        `    (Setting OLLAMA_CONTEXT_LENGTH and restarting the server does not work on\n` +
+        `     macOS, where the menu-bar app respawns it without that variable.)\n` +
         `  • Use a hosted endpoint with a large context window (set OPEN_BASE_URL / OPEN_MODEL).\n` +
         `  • Use a frontier provider: --provider anthropic | openai\n` +
         `  • Or shorten the input paper.`,

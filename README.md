@@ -112,11 +112,15 @@ npm run generate -- paper.pdf --provider open --minutes 4
 
 A hosted OpenAI-compatible tier (Together, Groq, OpenRouter) removes the RAM constraint entirely — point `OPEN_BASE_URL` at it and set `OPEN_API_KEY`. That is the better route for the P2 eval comparison, where a stronger open model makes the frontier-vs-open result more meaningful.
 
-> **Raise Ollama's context window before using it on full papers.** Ollama defaults to a 4,096-token context regardless of the model's real capacity, which is far too small for a typical paper. Restart the server with a larger limit:
+> **Raise Ollama's context window before using it on full papers.** Ollama gives every model a 4,096-token context regardless of its real capacity — far too small for a typical paper, and it ignores `num_ctx` sent over the OpenAI-compatible API. Bake the larger context into a derived model instead:
 >
 > ```bash
-> OLLAMA_CONTEXT_LENGTH=32768 ollama serve
+> ollama create qwen2:7b-32k -f ollama/qwen2-32k.Modelfile
 > ```
+>
+> Then set `OPEN_MODEL=qwen2:7b-32k`. Measured effect on this repo's own runs: **4,096 → 25,025** input tokens actually processed.
+>
+> Setting `OLLAMA_CONTEXT_LENGTH` and restarting the server is the commonly suggested fix, but it does **not** work on macOS — the menu-bar app supervises `ollama serve` and respawns it without that variable. The derived model needs no service restart, survives reboots, reuses the base weights (no extra disk), and leaves your other models untouched.
 >
 > Without this the run aborts with a `ContextTruncationError` rather than producing an episode about the wrong subject.
 

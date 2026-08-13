@@ -37,7 +37,10 @@ describe("assertNoSilentTruncation", () => {
       const msg = (err as Error).message;
       expect(msg).toContain("qwen2:7b");
       expect(msg).toContain("4,096");
-      expect(msg).toContain("OLLAMA_CONTEXT_LENGTH");
+      // Must point at the remediation that actually works, not the one that
+      // silently fails under the macOS menu-bar supervisor.
+      expect(msg).toContain("ollama create");
+      expect(msg).toContain("Modelfile");
     }
   });
 

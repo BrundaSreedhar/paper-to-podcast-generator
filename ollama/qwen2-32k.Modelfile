@@ -1,0 +1,19 @@
+# Ollama defaults every model to a 4096-token context regardless of what the
+# model actually supports, and ignores num_ctx sent over its OpenAI-compatible
+# API. A full paper is far larger than that, and the overflow is dropped
+# silently — the model then confabulates an answer about a document it only
+# partly saw.
+#
+# Baking num_ctx into a derived model fixes this without restarting the Ollama
+# service (the macOS menu-bar app respawns any server you kill, discarding
+# OLLAMA_CONTEXT_LENGTH) and without raising memory use for other models.
+#
+# Build:  ollama create qwen2:7b-32k -f ollama/qwen2-32k.Modelfile
+# Use:    OPEN_MODEL=qwen2:7b-32k npm run generate -- paper.pdf --provider open
+#
+# qwen2:7b supports 32768 natively. Cost is roughly 1.9 GB of KV cache on top
+# of the 4.4 GB of weights, so about 6.5 GB resident — comfortable on 16 GB+.
+
+FROM qwen2:7b
+
+PARAMETER num_ctx 32768
