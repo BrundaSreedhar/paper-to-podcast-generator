@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import type { z } from "zod";
 import { openaiConfig } from "../config/env.js";
+import { OutputTruncationError } from "./errors.js";
 import type { LLMProvider, StructuredRequest, StructuredResult } from "./types.js";
 
 /**
@@ -34,6 +35,13 @@ export class OpenAIProvider implements LLMProvider {
         req.schemaName,
       ),
     });
+
+    if (completion.choices[0]?.finish_reason === "length") {
+      throw new OutputTruncationError(
+        this.model,
+        completion.usage?.completion_tokens ?? req.maxTokens ?? 0,
+      );
+    }
 
     const msg = completion.choices[0]?.message;
     if (msg?.refusal) throw new Error(`OpenAI refused the request: ${msg.refusal}`);

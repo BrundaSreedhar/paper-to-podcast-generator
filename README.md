@@ -13,7 +13,7 @@ The hard part of this problem isn't generating audio — it's generating a scrip
 - **Section-aware extraction** removes references, appendices, and figure captions before the model ever sees the text, so it can't fabricate citations from a reference list it was shown.
 - **Structured output** (a single schema enforced across all providers) replaces brittle text parsing, so the shape of the result is guaranteed rather than guessed at.
 - **Explicit grounding constraints** in the system prompt: use only the provided paper, never invent numbers or names, say "the paper does not specify" rather than filling gaps.
-- **Speaker constraints**, because fabrication is not only about the science. Left unconstrained, models name the show, hand the speakers doctorates, and slip into "our approach" as though the presenters wrote the paper. The show name is fixed (`PaperCast` by default), the speakers are given no credentials or affiliations, and the work is always attributed to *the authors*.
+- **Speaker constraints**, because fabrication is not only about the science. Left unconstrained, models name the show, hand the speakers doctorates, and slip into "our approach" as though the presenters wrote the paper. The show name is fixed (`PaperCast` by default), the two speakers are unnamed and have no credentials or affiliations, and the work is always attributed to *the authors*. Apart from the show name, every proper noun in the dialogue should come from the paper.
 - **A silent-truncation guard** that refuses to generate at all when the model didn't actually receive the whole paper (see below).
 
 A faithfulness eval harness (LLM-as-judge) is the next phase — see [Roadmap](#roadmap).
@@ -184,9 +184,11 @@ Each provider reaches the same guaranteed shape by a different route:
 
 | Provider | Mechanism |
 |---|---|
-| **Claude** | The schema is registered as a tool and `tool_choice` forces the model to call it |
+| **Claude** | Schema registered as a tool, `tool_choice` forcing the call, then Zod validation with failures returned as a `tool_result` for in-place correction |
 | **OpenAI** | Strict `response_format: json_schema`, enforced server-side |
-| **Open models** | Schema embedded in the prompt + JSON mode, then Zod validation with the parse error fed back for self-correction (up to 3 retries) |
+| **Open models** | Schema embedded in the prompt + JSON mode, then Zod validation with the parse error fed back for self-correction |
+
+Forcing `tool_choice` guarantees Claude *calls* the tool, not that the input matches the schema — unlike OpenAI's `strict` mode, tool input is validated loosely, and a field occasionally comes back mistyped. Validation and retry therefore belong on the Claude path too, not only the open-model one.
 
 ---
 

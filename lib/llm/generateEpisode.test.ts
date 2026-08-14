@@ -80,11 +80,15 @@ describe("speaker and show-name guardrails", () => {
     expect(provider.last?.system).not.toContain("PaperCast");
   });
 
-  it("uses no honorific in the default speaker names", async () => {
+  it("gives the speakers no names at all", async () => {
     const provider = new StubProvider();
     await generateEpisode(PAPER, { provider });
-    // "Dr. Rivera" previously implied credentials neither speaker has.
-    expect(provider.last?.system).not.toMatch(/\bDr\.\s/);
+    const sys = provider.last!.system;
+    // Earlier versions injected invented personas ("Alex", "Dr. Rivera").
+    expect(sys).not.toMatch(/\bAlex\b/);
+    expect(sys).not.toMatch(/\bDr\.\s/);
+    expect(sys).toMatch(/speakers have no names/i);
+    expect(sys).toMatch(/never let them address each other by name/i);
   });
 
   it("forbids fabricated credentials and author impersonation", async () => {
@@ -115,9 +119,21 @@ describe("targetTurnCount", () => {
 
 describe("estimateOutputTokens", () => {
   it("scales with minutes and stays within clamps", () => {
-    expect(estimateOutputTokens(1)).toBeGreaterThanOrEqual(2500);
-    expect(estimateOutputTokens(60)).toBeLessThanOrEqual(16000);
+    expect(estimateOutputTokens(1)).toBeGreaterThanOrEqual(4000);
+    expect(estimateOutputTokens(120)).toBeLessThanOrEqual(32000);
     expect(estimateOutputTokens(20)).toBeGreaterThan(estimateOutputTokens(5));
+  });
+
+  it("budgets enough for a 4-minute episode to complete", () => {
+    // Regression: the previous formula returned 2500 here, and Claude ran out
+    // of budget mid-keyPoints, truncating the tool call into invalid JSON.
+    expect(estimateOutputTokens(4)).toBeGreaterThan(3500);
+  });
+
+  it("accounts for JSON scaffolding, not just spoken words", () => {
+    // Budget must exceed a naive words-only estimate by a clear margin.
+    const naiveWordsOnly = 10 * 150 * 1.4;
+    expect(estimateOutputTokens(10)).toBeGreaterThan(naiveWordsOnly * 1.5);
   });
 });
 
