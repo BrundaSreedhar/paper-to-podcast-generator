@@ -9,7 +9,9 @@ import { z } from "zod";
 export const DialogueTurnSchema = z.object({
   speaker: z
     .enum(["host", "guest"])
-    .describe("Who is speaking. 'host' guides; 'guest' is the domain expert."),
+    .describe(
+      "Who is speaking. 'host' guides the conversation; 'guest' explains the paper. Neither has a name.",
+    ),
   text: z
     .string()
     .describe("What this speaker says, in natural spoken language. No markdown."),

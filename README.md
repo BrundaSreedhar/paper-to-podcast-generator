@@ -13,7 +13,7 @@ The hard part of this problem isn't generating audio — it's generating a scrip
 - **Section-aware extraction** removes references, appendices, and figure captions before the model ever sees the text, so it can't fabricate citations from a reference list it was shown.
 - **Structured output** (a single schema enforced across all providers) replaces brittle text parsing, so the shape of the result is guaranteed rather than guessed at.
 - **Explicit grounding constraints** in the system prompt: use only the provided paper, never invent numbers or names, say "the paper does not specify" rather than filling gaps.
-- **Speaker constraints**, because fabrication is not only about the science. Left unconstrained, models name the show, hand the speakers doctorates, and slip into "our approach" as though the presenters wrote the paper. The show name is fixed (`PaperCast` by default), the speakers are given no credentials or affiliations, and the work is always attributed to *the authors*.
+- **Speaker constraints**, because fabrication is not only about the science. Left unconstrained, models name the show, hand the speakers doctorates, and slip into "our approach" as though the presenters wrote the paper. The show name is fixed (`PaperCast` by default), the two speakers are unnamed and have no credentials or affiliations, and the work is always attributed to *the authors*. Apart from the show name, every proper noun in the dialogue should come from the paper.
 - **A silent-truncation guard** that refuses to generate at all when the model didn't actually receive the whole paper (see below).
 
 A faithfulness eval harness (LLM-as-judge) is the next phase — see [Roadmap](#roadmap).

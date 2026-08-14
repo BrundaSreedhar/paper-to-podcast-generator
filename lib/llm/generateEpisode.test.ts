@@ -80,11 +80,15 @@ describe("speaker and show-name guardrails", () => {
     expect(provider.last?.system).not.toContain("PaperCast");
   });
 
-  it("uses no honorific in the default speaker names", async () => {
+  it("gives the speakers no names at all", async () => {
     const provider = new StubProvider();
     await generateEpisode(PAPER, { provider });
-    // "Dr. Rivera" previously implied credentials neither speaker has.
-    expect(provider.last?.system).not.toMatch(/\bDr\.\s/);
+    const sys = provider.last!.system;
+    // Earlier versions injected invented personas ("Alex", "Dr. Rivera").
+    expect(sys).not.toMatch(/\bAlex\b/);
+    expect(sys).not.toMatch(/\bDr\.\s/);
+    expect(sys).toMatch(/speakers have no names/i);
+    expect(sys).toMatch(/never let them address each other by name/i);
   });
 
   it("forbids fabricated credentials and author impersonation", async () => {
