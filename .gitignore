@@ -29,3 +29,6 @@ lib/eval/results/*
 
 # local test inputs (not part of the repo)
 sample_papers/
+
+# generated episode output
+*.episode.json

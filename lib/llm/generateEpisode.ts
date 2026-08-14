@@ -130,9 +130,21 @@ export function targetTurnCount(minutes: number): number {
   return Math.min(60, Math.max(6, Math.round(minutes * 3.5)));
 }
 
-/** Output token budget from target minutes (dialogue + summary + key points). */
+/**
+ * Output token budget for the whole structured result.
+ *
+ * The earlier version counted only spoken words and badly under-budgeted: the
+ * model emits JSON, so every turn also carries `{"speaker":…,"text":…}`
+ * scaffolding and escaping, and capable models write far longer summaries and
+ * key points than a flat allowance assumes. Running out mid-object truncates
+ * the tool call and produces a broken result rather than a shorter one, so this
+ * is deliberately generous — max_tokens is a ceiling, not a reservation, and
+ * unused budget costs nothing.
+ */
 export function estimateOutputTokens(minutes: number): number {
-  // ~1.4 tokens/word for dialogue, plus overhead for summary and key points.
-  const dialogueTokens = minutes * WORDS_PER_MINUTE * 1.4;
-  return Math.min(16_000, Math.max(2_500, Math.round(dialogueTokens + 1_500)));
+  const dialogueTokens = minutes * WORDS_PER_MINUTE * 1.5;
+  const turnOverhead = targetTurnCount(minutes) * 20;
+  const summaryAndKeyPoints = 1_200;
+  const total = (dialogueTokens + turnOverhead + summaryAndKeyPoints) * 1.35;
+  return Math.min(32_000, Math.max(4_000, Math.round(total)));
 }

@@ -19,11 +19,13 @@ export const EpisodeSchema = z.object({
   summary: z
     .string()
     .describe(
-      "A tight prose summary of the paper: problem, approach, key results, limitations.",
+      "A tight prose summary of the paper — problem, approach, key results, limitations — in at most 150 words.",
     ),
   keyPoints: z
     .array(z.string())
-    .describe("The paper's most important takeaways, each a concise standalone point."),
+    .describe(
+      "Five to eight of the paper's most important takeaways. Each is ONE sentence of at most 25 words, not a paragraph.",
+    ),
   turns: z
     .array(DialogueTurnSchema)
     .describe(

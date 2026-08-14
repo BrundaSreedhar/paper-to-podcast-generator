@@ -184,9 +184,11 @@ Each provider reaches the same guaranteed shape by a different route:
 
 | Provider | Mechanism |
 |---|---|
-| **Claude** | The schema is registered as a tool and `tool_choice` forces the model to call it |
+| **Claude** | Schema registered as a tool, `tool_choice` forcing the call, then Zod validation with failures returned as a `tool_result` for in-place correction |
 | **OpenAI** | Strict `response_format: json_schema`, enforced server-side |
-| **Open models** | Schema embedded in the prompt + JSON mode, then Zod validation with the parse error fed back for self-correction (up to 3 retries) |
+| **Open models** | Schema embedded in the prompt + JSON mode, then Zod validation with the parse error fed back for self-correction |
+
+Forcing `tool_choice` guarantees Claude *calls* the tool, not that the input matches the schema — unlike OpenAI's `strict` mode, tool input is validated loosely, and a field occasionally comes back mistyped. Validation and retry therefore belong on the Claude path too, not only the open-model one.
 
 ---
 
