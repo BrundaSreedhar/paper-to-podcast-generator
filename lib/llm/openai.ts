@@ -28,7 +28,13 @@ export class OpenAIProvider implements LLMProvider {
       temperature: req.temperature ?? 0.6,
       messages: [
         { role: "system", content: req.system },
-        { role: "user", content: req.user },
+        // No explicit cache control here; the prefix is simply prepended.
+        {
+          role: "user",
+          content: req.cacheableContext
+            ? `${req.cacheableContext}\n\n${req.user}`
+            : req.user,
+        },
       ],
       response_format: zodResponseFormat(
         req.schema as z.ZodType<Record<string, unknown>>,

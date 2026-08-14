@@ -4,6 +4,13 @@ import type { ProviderName } from "../config/env.js";
 /** A request for structured output validated against a Zod schema. */
 export interface StructuredRequest<T> {
   system: string;
+  /**
+   * A large, reusable prefix — a whole paper, say — that providers supporting
+   * prompt caching may cache. Judging N episodes of the same paper otherwise
+   * re-sends it N times, and the paper dominates the token bill. Providers
+   * without caching simply prepend it to `user`, so behaviour is identical.
+   */
+  cacheableContext?: string;
   user: string;
   /** Validation schema — the contract every provider must satisfy. */
   schema: z.ZodType<T>;
@@ -17,6 +24,10 @@ export interface StructuredRequest<T> {
 export interface Usage {
   inputTokens?: number;
   outputTokens?: number;
+  /** Input tokens written to the prompt cache. */
+  cacheWriteTokens?: number;
+  /** Input tokens served from the prompt cache, billed at a large discount. */
+  cacheReadTokens?: number;
 }
 
 export interface StructuredResult<T> {

@@ -39,9 +39,12 @@ export class OpenCompatibleProvider implements LLMProvider {
 Respond with a SINGLE JSON object and nothing else — no commentary, no markdown code fences. It must conform exactly to this JSON Schema:
 ${JSON.stringify(jsonSchema)}`;
 
+    const userContent = req.cacheableContext
+      ? `${req.cacheableContext}\n\n${req.user}`
+      : req.user;
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: system },
-      { role: "user", content: req.user },
+      { role: "user", content: userContent },
     ];
 
     const usage: Usage = { inputTokens: 0, outputTokens: 0 };
@@ -56,7 +59,7 @@ ${JSON.stringify(jsonSchema)}`;
       // we composed; retries append correction turns and only grow from here.
       if (attempt === 0) {
         assertNoSilentTruncation({
-          sentText: system + req.user,
+          sentText: system + userContent,
           processedTokens: completion.usage?.prompt_tokens,
           model: this.model,
         });

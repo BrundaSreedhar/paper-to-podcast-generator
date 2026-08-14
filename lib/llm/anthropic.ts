@@ -35,10 +35,26 @@ export class AnthropicProvider implements LLMProvider {
   }
 
   async generateStructured<T>(req: StructuredRequest<T>): Promise<StructuredResult<T>> {
-    const messages: Anthropic.Messages.MessageParam[] = [
-      { role: "user", content: req.user },
-    ];
-    const usage = { inputTokens: 0, outputTokens: 0 };
+    // A cacheable prefix goes in its own content block marked for caching, so
+    // repeated judgements of the same paper pay for it once.
+    const content: Anthropic.Messages.ContentBlockParam[] = req.cacheableContext
+      ? [
+          {
+            type: "text",
+            text: req.cacheableContext,
+            cache_control: { type: "ephemeral" },
+          },
+          { type: "text", text: req.user },
+        ]
+      : [{ type: "text", text: req.user }];
+
+    const messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content }];
+    const usage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheWriteTokens: 0,
+      cacheReadTokens: 0,
+    };
     let lastError: unknown;
 
     for (let attempt = 0; attempt <= MAX_VALIDATION_RETRIES; attempt++) {
@@ -63,6 +79,8 @@ export class AnthropicProvider implements LLMProvider {
 
       usage.inputTokens += resp.usage?.input_tokens ?? 0;
       usage.outputTokens += resp.usage?.output_tokens ?? 0;
+      usage.cacheWriteTokens += resp.usage?.cache_creation_input_tokens ?? 0;
+      usage.cacheReadTokens += resp.usage?.cache_read_input_tokens ?? 0;
 
       // A tool call cut off by the token cap yields half-built JSON, which would
       // otherwise surface as a confusing pile of Zod "Required" errors. Retrying
