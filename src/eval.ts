@@ -60,6 +60,12 @@ async function main() {
   for (const pc of papers) {
     const paper = await loadPaper(pc);
     console.log(`📄  ${pc.id} — ${paper.wordCount} words, ${pc.expectedContributions.length} annotated contributions`);
+    if (pc.expectedContributions.length === 0) {
+      // Without annotations there is nothing to measure coverage against, and
+      // reporting it as zero would read as a failure rather than a gap.
+      console.log(`    ⚠️  no annotations for "${pc.id}" — coverage will be reported as not measured.`);
+      console.log(`        Add them to ANNOTATIONS in lib/eval/dataset.ts to enable coverage scoring.`);
+    }
 
     for (const name of providers) {
       process.stdout.write(`    ${name.padEnd(10)} generating… `);
@@ -112,7 +118,7 @@ async function main() {
 
         const f = judged.faithfulness;
         console.log(
-          `faithful ${(f.faithfulness * 100).toFixed(0)}% · halluc ${(f.hallucinationRate * 100).toFixed(0)}% · coverage ${(judged.coverage.coverage * 100).toFixed(0)}% · ${deterministic.errors} errors · ${
+          `faithful ${(f.faithfulness * 100).toFixed(0)}% · halluc ${(f.hallucinationRate * 100).toFixed(0)}% · coverage ${judged.coverage ? (judged.coverage.coverage * 100).toFixed(0) + "%" : "n/a"} · ${deterministic.errors} errors · ${
             estimateCost(gen.model, gen.usage) !== undefined
               ? "$" + estimateCost(gen.model, gen.usage)!.toFixed(4)
               : "free"

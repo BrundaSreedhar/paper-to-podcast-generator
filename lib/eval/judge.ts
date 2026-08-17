@@ -154,12 +154,13 @@ export async function scoreCoverage(
   episode: Episode,
   expectedContributions: string[],
   opts: JudgeOptions,
-): Promise<{ coverage: CoverageReport; usage: Usage }> {
+): Promise<{ coverage: CoverageReport | undefined; usage: Usage }> {
+  // A paper with no annotated contributions has no coverage to measure. That
+  // must be reported as absent, not as zero: a score of 0% is a claim that the
+  // episode covered nothing, which would condemn every newly added paper until
+  // somebody noticed the annotations were missing.
   if (expectedContributions.length === 0) {
-    return {
-      coverage: { expected: [], hit: [], missed: [], coverage: 0 },
-      usage: {},
-    };
+    return { coverage: undefined, usage: {} };
   }
 
   const list = expectedContributions.map((c, i) => `[${i}] ${c}`).join("\n");
@@ -194,7 +195,8 @@ export async function scoreCoverage(
 
 export interface JudgementResult {
   faithfulness: FaithfulnessReport;
-  coverage: CoverageReport;
+  /** Absent when the paper has no annotated contributions to score against. */
+  coverage?: CoverageReport;
   claims: Claim[];
   usage: Usage;
   latencyMs: number;

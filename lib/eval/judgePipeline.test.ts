@@ -151,17 +151,18 @@ describe("scoreCoverage", () => {
       ],
     });
     const { coverage } = await scoreCoverage(EPISODE, ["A", "B", "C"], { provider });
-    expect(coverage.hit).toEqual(["A", "C"]);
-    expect(coverage.missed).toEqual(["B"]);
-    expect(coverage.coverage).toBeCloseTo(2 / 3);
+    expect(coverage?.hit).toEqual(["A", "C"]);
+    expect(coverage?.missed).toEqual(["B"]);
+    expect(coverage?.coverage).toBeCloseTo(2 / 3);
   });
 
-  it("returns zero without calling the model when nothing is annotated", async () => {
+  it("reports coverage as not measured, rather than zero, when nothing is annotated", async () => {
+    // A newly added paper has no annotations yet. Scoring it 0% would read as
+    // "the episode covered nothing" and quietly condemn every new paper.
     const provider = new StubProvider({ results: [] });
     const { coverage } = await scoreCoverage(EPISODE, [], { provider });
     expect(provider.calls).toBe(0);
-    expect(coverage.coverage).toBe(0);
-    expect(coverage.expected).toEqual([]);
+    expect(coverage).toBeUndefined();
   });
 
   it("scores full coverage at 1", async () => {
@@ -169,6 +170,6 @@ describe("scoreCoverage", () => {
       results: [{ contribution: "A", mentioned: true, evidence: "q" }],
     });
     const { coverage } = await scoreCoverage(EPISODE, ["A"], { provider });
-    expect(coverage.coverage).toBe(1);
+    expect(coverage?.coverage).toBe(1);
   });
 });

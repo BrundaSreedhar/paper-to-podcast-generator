@@ -264,11 +264,20 @@ That is the trap in scoring faithfulness alone. **An episode that says less has 
 
 Both `results/*.md` reports flag when the judge and generator are the same model. Models favour their own output, so a self-judged score is an upper bound, not a neutral measurement; `JUDGE_PROVIDER` exists to break that tie once a second provider is available.
 
+### Adding a paper
+
+Drop a PDF into `sample_papers/` — it is discovered automatically — then add its key contributions to `ANNOTATIONS` in [`lib/eval/dataset.ts`](lib/eval/dataset.ts).
+
+Without annotations, coverage is reported as **not measured** rather than 0%. That distinction matters: scoring an unannotated paper 0% would read as "the episode covered nothing" and quietly condemn every newly added paper. The runner warns when annotations are missing.
+
 ### Known limits
 
 - One paper. A comparison across a single document shows the harness works, not which model is better; more papers are the obvious next step.
 - Claude currently judges its own output on the frontier row, flagged in every report.
 - Coverage depends on hand-annotated contributions, so it exists only for annotated papers.
+- Mutation testing currently exercises the deterministic layer only; the judge's own detection rate is not yet measured.
+
+**Full design rationale:** [docs/evaluation-design.md](docs/evaluation-design.md).
 
 ---
 
