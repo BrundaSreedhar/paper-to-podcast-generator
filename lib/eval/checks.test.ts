@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   checkAlternation,
+  checkSchema,
   checkNoAuthorImpersonation,
   checkNoClaimedExpertise,
   checkNoDirectAddress,
@@ -40,6 +41,31 @@ function ctx(turns: Episode["turns"], overrides: Partial<CheckContext> = {}): Ch
 }
 
 const t = (speaker: "host" | "guest", text: string) => ({ speaker, text });
+
+describe("checkSchema", () => {
+  it("passes a well-formed episode", () => {
+    expect(checkSchema(ctx([t("host", "hello")])).passed).toBe(true);
+  });
+
+  it("fails an episode with a malformed speaker", () => {
+    const bad = ctx([]);
+    // Providers can return off-schema payloads; the check exists to catch a
+    // shape that slipped through rather than to restate the type system.
+    bad.episode = {
+      ...bad.episode,
+      turns: [{ speaker: "narrator", text: "hi" }],
+    } as unknown as typeof bad.episode;
+    expect(checkSchema(bad).passed).toBe(false);
+  });
+
+  it("fails an episode missing a required field", () => {
+    const bad = ctx([t("host", "hi")]);
+    bad.episode = { turns: bad.episode.turns } as unknown as typeof bad.episode;
+    const r = checkSchema(bad);
+    expect(r.passed).toBe(false);
+    expect(r.severity).toBe("error");
+  });
+});
 
 describe("checkAlternation", () => {
   it("passes on alternating speakers", () => {

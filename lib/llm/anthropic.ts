@@ -7,6 +7,22 @@ import type { LLMProvider, StructuredRequest, StructuredResult } from "./types.j
 
 const MAX_VALIDATION_RETRIES = 2;
 
+/**
+ * Build the user message content. A cacheable prefix goes in its own block
+ * marked for caching, so judging several episodes against one paper pays for
+ * that paper once rather than once per episode.
+ */
+export function buildMessageContent(
+  cacheableContext: string | undefined,
+  user: string,
+): Anthropic.Messages.ContentBlockParam[] {
+  if (!cacheableContext) return [{ type: "text", text: user }];
+  return [
+    { type: "text", text: cacheableContext, cache_control: { type: "ephemeral" } },
+    { type: "text", text: user },
+  ];
+}
+
 /** Summarize a Zod failure compactly enough to hand back to the model. */
 export function describeZodError(err: unknown): string {
   if (err instanceof ZodError) {
@@ -35,20 +51,9 @@ export class AnthropicProvider implements LLMProvider {
   }
 
   async generateStructured<T>(req: StructuredRequest<T>): Promise<StructuredResult<T>> {
-    // A cacheable prefix goes in its own content block marked for caching, so
-    // repeated judgements of the same paper pay for it once.
-    const content: Anthropic.Messages.ContentBlockParam[] = req.cacheableContext
-      ? [
-          {
-            type: "text",
-            text: req.cacheableContext,
-            cache_control: { type: "ephemeral" },
-          },
-          { type: "text", text: req.user },
-        ]
-      : [{ type: "text", text: req.user }];
-
-    const messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content }];
+    const messages: Anthropic.Messages.MessageParam[] = [
+      { role: "user", content: buildMessageContent(req.cacheableContext, req.user) },
+    ];
     const usage = {
       inputTokens: 0,
       outputTokens: 0,

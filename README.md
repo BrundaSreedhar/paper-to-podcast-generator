@@ -32,7 +32,7 @@ All of this is measured rather than asserted — see [Evaluation](#evaluation).
 | **P5** | Next.js frontend with synced transcript player | ⬜ Planned |
 | **P6** | Tests in CI, deploy, README as pitch | ⬜ Planned |
 
-**Today the project generates transcripts, not audio.** The full text pipeline (PDF → clean structure → summary + key points + dialogue) works end to end and is covered by 80 unit tests. Audio synthesis lands in P3.
+**Today the project generates transcripts, not audio.** The full text pipeline (PDF → clean structure → summary + key points + dialogue) works end to end and is covered by 148 unit tests. Audio synthesis lands in P3.
 
 Verified end to end on real papers against both Claude and a local open model, and scored by the eval harness rather than by eye — see [Evaluation](#evaluation) for the numbers and their error bars.
 
@@ -170,6 +170,7 @@ lib/
     ├── judge.ts            Claim extraction, verification, coverage (Layer 2)
     ├── judgeSchema.ts      Strict-mode-safe schemas for the judge passes
     ├── dataset.ts          Paper discovery, annotations, fixture loading
+    ├── mutate.ts           Deliberate corruptions for sensitivity testing
     ├── report.ts           Markdown comparison report and cost estimates
     └── fixtures/           Captured episodes with known verdicts
 
@@ -230,6 +231,12 @@ A judge that rates that last row as faithful is broken. This one places it seven
 
 Inspecting individual verdicts also caught a bug in the harness rather than the model. Decomposing *"the old bottleneck goes away, but the cost moves to the network"* into its first half alone produced a claim the paper genuinely contradicts — an artifact of splitting, not a hallucination. Extraction now keeps contrastive and qualified statements intact, which moved the clean episode from 88% to 93%.
 
+### Sensitivity: mutation testing
+
+Fixtures prove the checks catch the failures already seen. They say nothing about sensitivity in general, and hand-writing more cases only tests the failures one already thought of. So a clean episode is corrupted one fault at a time — a figure swapped for one the paper never states, a fabricated system introduced, a doctorate handed out, authorship claimed, the show renamed, alternation broken, the dialogue truncated — and each corruption names the check that must catch it.
+
+**All 9 injected corruptions are detected, with no false positives on the uncorrupted control.** The suite reports that as a rate, so a regression in a regex shows up as a number rather than a mysteriously passing build. It needs no API key and runs in CI.
+
 ### Judge variance
 
 Repeated grading of the same episode, `claude-sonnet-5`, three runs each:
@@ -284,7 +291,7 @@ This was found the hard way. Running the Amazon Aurora paper (~17k tokens) throu
 ## Development
 
 ```bash
-npm test          # Vitest — 80 tests
+npm test          # Vitest — 148 tests
 npm run typecheck # tsc --noEmit
 npm run lint      # ESLint
 npm run format    # Prettier

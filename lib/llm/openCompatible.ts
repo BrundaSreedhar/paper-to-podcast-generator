@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { openConfig } from "../config/env.js";
 import { assertNoSilentTruncation } from "./contextGuard.js";
+import { joinCacheableContext } from "./promptParts.js";
 import type { LLMProvider, StructuredRequest, StructuredResult, Usage } from "./types.js";
 
 const MAX_RETRIES = 3;
@@ -39,9 +40,7 @@ export class OpenCompatibleProvider implements LLMProvider {
 Respond with a SINGLE JSON object and nothing else — no commentary, no markdown code fences. It must conform exactly to this JSON Schema:
 ${JSON.stringify(jsonSchema)}`;
 
-    const userContent = req.cacheableContext
-      ? `${req.cacheableContext}\n\n${req.user}`
-      : req.user;
+    const userContent = joinCacheableContext(req.cacheableContext, req.user);
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: system },
       { role: "user", content: userContent },
