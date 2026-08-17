@@ -21,7 +21,47 @@ function pct(n: number): string {
   return `${(n * 100).toFixed(0)}%`;
 }
 
+/**
+ * Re-judge one fixture several times to measure grader variance. Reported
+ * because a difference between two models means nothing until it is larger
+ * than the spread of the instrument measuring it.
+ */
+async function measureVariance(repeat: number) {
+  const judgeName = (process.env.JUDGE_PROVIDER as ProviderName) ?? activeProvider();
+  const provider = getProvider(judgeName);
+  const papers = await loadPapers();
+  const fixtures = await loadFixtures();
+
+  console.log(`\n📏  Judge variance — ${repeat} runs per fixture (${provider.model})\n`);
+
+  for (const fx of fixtures) {
+    const pc = papers.find((p) => p.id === fx.paperId);
+    if (!pc) continue;
+    const paper = await loadPaper(pc);
+
+    const scores: number[] = [];
+    for (let i = 0; i < repeat; i++) {
+      const j = await judgeEpisode(fx.episode, paper, pc.expectedContributions, {
+        provider,
+      });
+      scores.push(j.faithfulness.faithfulness);
+      process.stdout.write(`   ${fx.id} run ${i + 1}: ${pct(j.faithfulness.faithfulness)}\n`);
+    }
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const spread = Math.max(...scores) - Math.min(...scores);
+    console.log(
+      `   → ${fx.id}: mean ${pct(mean)}, spread ${(spread * 100).toFixed(1)} points\n`,
+    );
+  }
+}
+
 async function main() {
+  const repeatArg = process.argv.indexOf("--repeat");
+  if (repeatArg !== -1) {
+    await measureVariance(Number(process.argv[repeatArg + 1] ?? 3));
+    return;
+  }
+
   const judgeName = (process.env.JUDGE_PROVIDER as ProviderName) ?? activeProvider();
   const provider = getProvider(judgeName);
   console.log(`\n⚖️   Judge: ${judgeName} / ${provider.model}\n`);

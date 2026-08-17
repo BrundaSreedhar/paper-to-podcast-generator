@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Unit tests and the deterministic eval layer. No API keys are needed:
+      # the eval fixtures are captured episodes, and the checks that grade them
+      # are pure functions. Suites that require a source PDF skip visibly rather
+      # than passing vacuously, since the papers are not committed.
+      - name: Test
+        run: npm test

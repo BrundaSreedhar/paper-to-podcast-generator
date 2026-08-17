@@ -11,7 +11,8 @@
     "lint": "eslint . ",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "eval:validate": "tsx src/validate-judge.ts"
+    "eval:validate": "tsx src/validate-judge.ts",
+    "eval": "tsx src/eval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

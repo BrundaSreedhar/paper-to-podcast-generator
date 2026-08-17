@@ -12,6 +12,17 @@ import type { PaperStructure } from "../pdf/extract.js";
 let fixtures: Fixture[];
 let aurora: PaperStructure | undefined;
 
+/**
+ * The papers themselves are not committed — they are third-party PDFs — so
+ * these tests are skipped rather than passed when the source is absent. A
+ * vacuous pass is worse than a visible skip, because it reports coverage the
+ * suite does not actually have.
+ */
+const hasPaper = await (async () => {
+  const papers = await loadPapers();
+  return papers.some((p) => p.id === "aurora");
+})();
+
 beforeAll(async () => {
   fixtures = await loadFixtures();
   const papers = await loadPapers();
@@ -26,7 +37,7 @@ function byId(id: string): Fixture {
 }
 
 function report(id: string) {
-  if (!aurora) return undefined;
+  if (!aurora) throw new Error("aurora paper not loaded; this suite should have skipped");
   return runDeterministicChecks({
     episode: byId(id).episode,
     paper: aurora,
@@ -45,10 +56,9 @@ describe("fixtures load", () => {
   });
 });
 
-describe("deterministic checks against real episodes", () => {
+describe.skipIf(!hasPaper)("deterministic checks against real episodes", () => {
   it("flags the fabricated-personas episode", () => {
     const r = report("fabricated-personas");
-    if (!r) return; // sample_papers/aurora.pdf not present
     const failed = r.checks.filter((c) => !c.passed).map((c) => c.id);
     expect(failed).toContain("show-name");
     expect(failed).toContain("honorifics");
@@ -57,7 +67,6 @@ describe("deterministic checks against real episodes", () => {
 
   it("passes the clean Claude episode with no errors", () => {
     const r = report("clean-claude");
-    if (!r) return;
     const errors = r.checks.filter((c) => !c.passed && c.severity === "error");
     expect(errors.map((c) => `${c.id}: ${c.detail}`)).toEqual([]);
   });
@@ -65,13 +74,11 @@ describe("deterministic checks against real episodes", () => {
   it("scores the clean episode above the fabricated one", () => {
     const clean = report("clean-claude");
     const bad = report("fabricated-personas");
-    if (!clean || !bad) return;
     expect(clean.complianceScore).toBeGreaterThan(bad.complianceScore);
   });
 
   it("flags the hallucinated episode on entity grounding", () => {
     const r = report("hallucinated-mapreduce");
-    if (!r) return;
     // Whole-episode hallucination is the judge's job, but the cheap layer
     // should still notice it discussing entities the paper never mentions.
     const failed = r.checks.filter((c) => !c.passed).map((c) => c.id);
