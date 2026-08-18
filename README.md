@@ -16,7 +16,7 @@ The hard part of this problem isn't generating audio — it's generating a scrip
 - **Speaker constraints**, because fabrication is not only about the science. Left unconstrained, models name the show, hand the speakers doctorates, and slip into "our approach" as though the presenters wrote the paper. The show name is fixed (`PaperCast` by default), the two speakers are unnamed and have no credentials or affiliations, and the work is always attributed to *the authors*. Apart from the show name, every proper noun in the dialogue should come from the paper.
 - **A silent-truncation guard** that refuses to generate at all when the model didn't actually receive the whole paper (see below).
 
-A faithfulness eval harness (LLM-as-judge) is the next phase — see [Roadmap](#roadmap).
+All of this is measured rather than asserted — see [Evaluation](#evaluation).
 
 ---
 
@@ -26,15 +26,15 @@ A faithfulness eval harness (LLM-as-judge) is the next phase — see [Roadmap](#
 |---|---|---|
 | **P0** | Foundations, secrets hygiene, toolchain | ✅ Done |
 | **P1** | Extraction → provider abstraction → dialogue → CLI | ✅ Done |
-| **P2** | LLM-judge evals + frontier-vs-open comparison | ⬜ Next |
+| **P2** | LLM-judge evals + frontier-vs-open comparison | ✅ Done |
 | **P3** | Audio (chunked, per-speaker TTS) | ⬜ Planned |
 | **P4** | Async job model + streaming progress | ⬜ Planned |
 | **P5** | Next.js frontend with synced transcript player | ⬜ Planned |
 | **P6** | Tests in CI, deploy, README as pitch | ⬜ Planned |
 
-**Today the project generates transcripts, not audio.** The full text pipeline (PDF → clean structure → summary + key points + dialogue) works end to end and is covered by 27 unit tests. Audio synthesis lands in P3.
+**Today the project generates transcripts, not audio.** The full text pipeline (PDF → clean structure → summary + key points + dialogue) works end to end and is covered by 148 unit tests. Audio synthesis lands in P3.
 
-Verified end to end against a live open model: a 4-minute episode from a real PDF via local `qwen2:7b` in ~72s (2,149 input / 855 output tokens, 13 dialogue turns, zero schema-validation retries).
+Verified end to end on real papers against both Claude and a local open model, and scored by the eval harness rather than by eye — see [Evaluation](#evaluation) for the numbers and their error bars.
 
 ---
 
@@ -165,9 +165,18 @@ lib/
 │   ├── contextGuard.ts    Aborts when the server silently drops input
 │   ├── index.ts           Provider factory
 │   └── generateEpisode.ts Prompt construction and orchestration
-└── eval/                  (P2) LLM-judge harness
+└── eval/
+    ├── checks.ts           Deterministic checks (Layer 1)
+    ├── judge.ts            Claim extraction, verification, coverage (Layer 2)
+    ├── judgeSchema.ts      Strict-mode-safe schemas for the judge passes
+    ├── dataset.ts          Paper discovery, annotations, fixture loading
+    ├── mutate.ts           Deliberate corruptions for sensitivity testing
+    ├── report.ts           Markdown comparison report and cost estimates
+    └── fixtures/           Captured episodes with known verdicts
 
-src/cli.ts                 End-to-end command-line runner
+src/cli.ts                 Generate a single episode
+src/eval.ts                Generate + score across providers
+src/validate-judge.ts      Validate the judge before trusting it
 ```
 
 ### The provider interface
@@ -192,6 +201,86 @@ Forcing `tool_choice` guarantees Claude *calls* the tool, not that the input mat
 
 ---
 
+## Evaluation
+
+```bash
+npm run eval                  # generate + score on every provider with credentials
+npm run eval:validate         # check the judge itself against known-bad episodes
+npm run eval:validate -- --repeat 3   # measure judge variance
+```
+
+### Two layers
+
+**Deterministic checks** run first, free and instantly, on every commit: schema, speaker alternation, length targets, show name, honorifics, claimed expertise, author impersonation, naming, and whether proper nouns and figures trace back to the paper. Most fabrication is decidable without a model, and sending an LLM to do a regex's job is slow and expensive.
+
+**An LLM judge** handles what genuinely needs judgement. Faithfulness is scored by decomposition, not by asking a model for a rating out of ten: the transcript is split into atomic claims, and each is marked `supported`, `unsupported`, or `contradicted` against a quoted passage. A list of verdicts with evidence can be read and argued with; a single number cannot.
+
+Only claim verification needs the full paper, so it is passed as cacheable context. Judging several providers on one paper pays for the paper once — measured at 25,762 tokens written to cache, then served from it twice.
+
+### Validating the judge
+
+An eval is only worth its output if the grader is sound, so `eval:validate` runs against captured episodes with known verdicts before any comparison is trusted. The most useful case is not synthetic: it is a real episode about *MapReduce frequent-itemset mining* that a local model produced from the Amazon Aurora paper after its context window silently truncated the input.
+
+| Fixture | Faithfulness | Hallucination | Coverage |
+|---|--:|--:|--:|
+| `clean-claude` | 93% | 4% | 100% |
+| `fabricated-personas` | 91% | 0% | 80% |
+| `hallucinated-mapreduce` | **13%** | 47% | 0% |
+
+A judge that rates that last row as faithful is broken. This one places it seven times below the faithful episodes.
+
+Inspecting individual verdicts also caught a bug in the harness rather than the model. Decomposing *"the old bottleneck goes away, but the cost moves to the network"* into its first half alone produced a claim the paper genuinely contradicts — an artifact of splitting, not a hallucination. Extraction now keeps contrastive and qualified statements intact, which moved the clean episode from 88% to 93%.
+
+### Sensitivity: mutation testing
+
+Fixtures prove the checks catch the failures already seen. They say nothing about sensitivity in general, and hand-writing more cases only tests the failures one already thought of. So a clean episode is corrupted one fault at a time — a figure swapped for one the paper never states, a fabricated system introduced, a doctorate handed out, authorship claimed, the show renamed, alternation broken, the dialogue truncated — and each corruption names the check that must catch it.
+
+**All 9 injected corruptions are detected, with no false positives on the uncorrupted control.** The suite reports that as a rate, so a regression in a regex shows up as a number rather than a mysteriously passing build. It needs no API key and runs in CI.
+
+### Judge variance
+
+Repeated grading of the same episode, `claude-sonnet-5`, three runs each:
+
+| Fixture | Mean | Spread |
+|---|--:|--:|
+| `clean-claude` | 94% | 2.0 pts |
+| `fabricated-personas` | 91% | 0.0 pts |
+| `hallucinated-mapreduce` | 12% | 8.2 pts |
+
+**A gap of two or three points between models is noise.** Differences are only reported as real when they exceed this.
+
+### Results
+
+Amazon Aurora paper, 4-minute episode, judged by `claude-sonnet-5`:
+
+| Generator | Faithful | Halluc. | Coverage | Compliance | Cost | Time |
+|---|--:|--:|--:|--:|--:|--:|
+| `claude-sonnet-5` | 91% | 4% | **100%** | 100% | $0.245 | 48s |
+| `qwen2:7b-32k` (local) | 94% | 4% | 80% | 100% | free | 174s |
+
+Read carefully, because the headline number is the misleading one. The open model's 3-point faithfulness lead sits inside the judge's 2-point noise band and should be treated as a tie. The real difference is **coverage**: the local model omitted one of the paper's five key contributions — that an asynchronous scheme based on log sequence numbers replaces two-phase commit — while Claude conveyed all five in roughly four times the output.
+
+That is the trap in scoring faithfulness alone. **An episode that says less has less to be wrong about**, and a model that says nothing at all scores perfectly. Coverage is what stops faithfulness from rewarding silence, and the two belong in the same table.
+
+Both `results/*.md` reports flag when the judge and generator are the same model. Models favour their own output, so a self-judged score is an upper bound, not a neutral measurement; `JUDGE_PROVIDER` exists to break that tie once a second provider is available.
+
+### Adding a paper
+
+Drop a PDF into `sample_papers/` — it is discovered automatically — then add its key contributions to `ANNOTATIONS` in [`lib/eval/dataset.ts`](lib/eval/dataset.ts).
+
+Without annotations, coverage is reported as **not measured** rather than 0%. That distinction matters: scoring an unannotated paper 0% would read as "the episode covered nothing" and quietly condemn every newly added paper. The runner warns when annotations are missing.
+
+### Known limits
+
+- One paper. A comparison across a single document shows the harness works, not which model is better; more papers are the obvious next step.
+- Claude currently judges its own output on the frontier row, flagged in every report.
+- Coverage depends on hand-annotated contributions, so it exists only for annotated papers.
+- Mutation testing currently exercises the deterministic layer only; the judge's own detection rate is not yet measured.
+
+**Full design rationale:** [docs/evaluation-design.md](docs/evaluation-design.md).
+
+---
+
 ## Design decisions
 
 **Why a provider abstraction rather than one SDK.** With only Claude and GPT the abstraction would be a formality — both support structured output natively. Adding an open model forces it to earn its keep: many OSS endpoints have no reliable tool-use or JSON-schema support, so the adapter has to coerce and validate. That coercion path is the part worth reading in `openCompatible.ts`.
@@ -211,7 +300,7 @@ This was found the hard way. Running the Amazon Aurora paper (~17k tokens) throu
 ## Development
 
 ```bash
-npm test          # Vitest — 27 tests
+npm test          # Vitest — 148 tests
 npm run typecheck # tsc --noEmit
 npm run lint      # ESLint
 npm run format    # Prettier
@@ -223,7 +312,6 @@ Tests are deliberately network-free: PDF parsing runs against a flattened-paper 
 
 ## Roadmap
 
-- **P2 — Evals.** An LLM-as-judge harness that extracts claims from a generated script, checks each against the source paper, and reports faithfulness, coverage, and hallucination flags — then a three-way **Claude vs GPT vs open** comparison on quality, cost, and latency.
 - **P3 — Audio.** Per-speaker voices, chunked to respect TTS input limits, concatenated into one episode with per-turn timestamps.
 - **P4 — Backend.** Async job model with streamed stage-by-stage progress, typed errors, token/cost logging.
 - **P5 — Frontend.** Next.js app with drag-and-drop upload, live progress, and an audio player that highlights the current dialogue turn.

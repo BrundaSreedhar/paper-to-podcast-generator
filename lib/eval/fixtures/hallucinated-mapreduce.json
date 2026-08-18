@@ -1,0 +1,55 @@
+{
+  "id": "hallucinated-mapreduce",
+  "description": "Naturally occurring whole-episode hallucination: Ollama silently truncated the Aurora paper to 4096 tokens and the model invented a paper about MapReduce frequent-itemset mining. The judge must score this near zero.",
+  "paperId": "aurora",
+  "generator": {
+    "provider": "open",
+    "model": "qwen2:7b"
+  },
+  "expectation": {
+    "maxFaithfulness": 0.3,
+    "minDeterministicErrors": 0
+  },
+  "episode": {
+    "summary": "The paper presents an efficient algorithm for finding frequent itemsets in large datasets, addressing scalability issues by utilizing a distributed computing framework called MapReduce.",
+    "keyPoints": [
+      "Develops an optimized MapReduce-based algorithm for mining frequent itemsets.",
+      "Improves upon existing algorithms in terms of speed and efficiency for big data analysis.",
+      "Demonstrates superior performance compared to previous methods on extensive benchmark datasets."
+    ],
+    "turns": [
+      {
+        "speaker": "host",
+        "text": "Welcome to our podcast episode where we're diving into a groundbreaking paper from 2017 that revolutionizes frequent itemset mining. Let's break it down together, starting with the main problem this research tackles."
+      },
+      {
+        "speaker": "guest",
+        "text": "The core issue is scalability in big data environments when analyzing transactional datasets for frequent items. Traditional algorithms struggle to handle the volume and velocity of modern data streams efficiently."
+      },
+      {
+        "speaker": "host",
+        "text": "That sounds like a significant hurdle for many industries dealing with large volumes of data daily. What's the innovative approach they propose?"
+      },
+      {
+        "speaker": "guest",
+        "text": "They introduce an optimized MapReduce algorithm specifically designed for frequent itemset mining tasks, leveraging distributed computing to process big data more effectively."
+      },
+      {
+        "speaker": "host",
+        "text": "Sounds promising! Can you share some key outcomes that demonstrate its effectiveness?"
+      },
+      {
+        "speaker": "guest",
+        "text": "Sure. The paper showcases significant improvements in speed and efficiency compared to previous methods when tested on large datasets from various domains like retail and web transactions."
+      },
+      {
+        "speaker": "host",
+        "text": "Closing thoughts, Dr. Rivera? What makes this research impactful beyond the academic realm?"
+      },
+      {
+        "speaker": "guest",
+        "text": "This study pushes the boundaries of what's possible with big data analysis by offering a practical solution that industries can implement to optimize their operations and gain deeper insights from vast datasets."
+      }
+    ]
+  }
+}

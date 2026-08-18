@@ -3,6 +3,7 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import type { z } from "zod";
 import { openaiConfig } from "../config/env.js";
 import { OutputTruncationError } from "./errors.js";
+import { joinCacheableContext } from "./promptParts.js";
 import type { LLMProvider, StructuredRequest, StructuredResult } from "./types.js";
 
 /**
@@ -28,7 +29,8 @@ export class OpenAIProvider implements LLMProvider {
       temperature: req.temperature ?? 0.6,
       messages: [
         { role: "system", content: req.system },
-        { role: "user", content: req.user },
+        // No explicit cache control here; the prefix is simply prepended.
+        { role: "user", content: joinCacheableContext(req.cacheableContext, req.user) },
       ],
       response_format: zodResponseFormat(
         req.schema as z.ZodType<Record<string, unknown>>,
