@@ -13,7 +13,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { promisify } from "node:util";
 import { EpisodeSchema, type Episode } from "../lib/llm/schema.js";
-import { getTTSProvider, synthesizeEpisode, type TTSProviderName } from "../lib/tts/index.js";
+import { resolveTTSProvider, synthesizeEpisode, type TTSProviderName } from "../lib/tts/index.js";
 import { runAudioChecks } from "../lib/eval/audioChecks.js";
 
 const run = promisify(execFile);
@@ -45,13 +45,13 @@ async function main() {
   const input = process.argv.slice(2).find((a) => !a.startsWith("--"));
   if (!input) {
     console.error(
-      "Usage: npm run audio -- <episode.json> [--provider say|openai] [--gap MS] [--out FILE] [--m4a]",
+      "Usage: npm run audio -- <episode.json> [--provider piper|say|openai] [--gap MS] [--out FILE] [--m4a]",
     );
     process.exit(1);
   }
 
   const episode = readEpisode(JSON.parse(await readFile(input, "utf8")));
-  const provider = getTTSProvider(arg("--provider") as TTSProviderName | undefined);
+  const provider = await resolveTTSProvider(arg("--provider") as TTSProviderName | undefined);
   const gapMs = Number(arg("--gap") ?? 350);
   const stem = (arg("--out") ?? input).replace(/\.(episode\.)?json$/i, "");
   const wavPath = `${stem}.wav`;

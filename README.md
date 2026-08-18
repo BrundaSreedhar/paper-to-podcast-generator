@@ -32,7 +32,7 @@ All of this is measured rather than asserted — see [Evaluation](#evaluation).
 | **P5** | Next.js frontend with synced transcript player | ⬜ Planned |
 | **P6** | Tests in CI, deploy, README as pitch | ⬜ Planned |
 
-**The pipeline now runs end to end: PDF → clean structure → dialogue → audio**, covered by 211 unit tests. A frontend and a deployed URL land in P5 and P6.
+**The pipeline now runs end to end: PDF → clean structure → dialogue → audio**, covered by 218 unit tests. A frontend and a deployed URL land in P5 and P6.
 
 Verified end to end on real papers against both Claude and a local open model, and scored by the eval harness rather than by eye — see [Evaluation](#evaluation) for the numbers and their error bars.
 
@@ -228,15 +228,41 @@ npm run audio -- paper.episode.json --provider openai --gap 500
 
 | Flag | Default | Description |
 |---|---|---|
-| `--provider` | `say` | `say` (macOS, free) or `openai` |
+| `--provider` | auto | `piper` (open source), `say` (macOS), or `openai` |
 | `--gap MS` | `350` | Silence between turns |
 | `--out FILE` | input path | Output stem for `.wav` / `.timings.json` |
 | `--m4a` | off | Also emit AAC via `afconvert` |
 | `--target N` | — | Requested minutes, to check the episode actually lasts that long |
 
-Measured on the Aurora episode: **6:04 of audio from 23 turns in 22 seconds**, entirely locally.
+Three backends, all behind one interface:
 
-**No ffmpeg, no API key.** The default backend is the macOS `say` command, so a fresh checkout produces a complete episode with audio and no account anywhere. The voices are dated next to a neural model — a fair trade for a default; `--provider openai` swaps in better ones.
+| Backend | Voices | Cost | Setup |
+|---|---|---|---|
+| **`piper`** | Open-source neural (lessac / ryan) | free | one-time model download |
+| `say` | macOS built-in (Samantha / Daniel) | free | none |
+| `openai` | `gpt-4o-mini-tts` (nova / onyx) | ~$0.09/episode | API key |
+
+With no `--provider` and no `TTS_PROVIDER`, the runner **prefers Piper when its models are installed and falls back to `say`** — so a fresh checkout still produces audio, and an installed Piper is used without remembering a flag.
+
+Measured on the Aurora episode: **5:32 via Piper in 34s**, or **6:04 via `say` in 22s**. Both entirely local, no account anywhere, no ffmpeg.
+
+### Installing Piper
+
+[Piper](https://github.com/rhasspy/piper) is MIT-licensed and runs on CPU. It needs a Python environment and two voice models (~60 MB each), both kept out of the repository:
+
+```bash
+uv venv --python 3.12 .venv-tts && uv pip install --python .venv-tts piper-tts
+```
+
+```bash
+.venv-tts/bin/python -m piper.download_voices en_US-lessac-medium --data-dir .voices
+```
+
+```bash
+.venv-tts/bin/python -m piper.download_voices en_US-ryan-medium --data-dir .voices
+```
+
+Override paths with `PIPER_BIN`, `PIPER_HOST_VOICE`, and `PIPER_GUEST_VOICE`. Piper emits 22.05 kHz 16-bit mono — the same format as `say` — so it lands on the existing joining and timing path unchanged.
 
 Segments are joined in pure TypeScript by parsing RIFF chunks and concatenating PCM. That avoids an ffmpeg dependency and buys something better: **exact per-turn timings derived from sample counts** rather than probed. The computed total matches macOS `afinfo` to the millisecond (364.004s), and those timings are what will drive transcript highlighting in P5.
 
@@ -367,7 +393,7 @@ This was found the hard way. Running the Amazon Aurora paper (~17k tokens) throu
 ## Development
 
 ```bash
-npm test          # Vitest — 211 tests
+npm test          # Vitest — 218 tests
 npm run typecheck # tsc --noEmit
 npm run lint      # ESLint
 npm run format    # Prettier

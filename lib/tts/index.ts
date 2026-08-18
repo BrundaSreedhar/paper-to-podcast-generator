@@ -1,26 +1,45 @@
 import { MacSayProvider, macSayAvailable } from "./macSay.js";
+import { PiperProvider, piperAvailable } from "./piper.js";
 import { OpenAITTSProvider } from "./openaiTts.js";
 import type { TTSProvider } from "./types.js";
 
-export type TTSProviderName = "say" | "openai";
+export type TTSProviderName = "piper" | "say" | "openai";
 
 /**
- * Choose a synthesis backend. Defaults to the local macOS voice, so a fresh
- * checkout produces audio without any account; `TTS_PROVIDER=openai` swaps in
- * the hosted voices when a key is present.
+ * Choose a synthesis backend explicitly. Prefer `resolveTTSProvider` when no
+ * provider was named, so the better local voice is used when it is installed.
  */
 export function getTTSProvider(name?: TTSProviderName): TTSProvider {
   const chosen = name ?? (process.env.TTS_PROVIDER as TTSProviderName) ?? "say";
   switch (chosen) {
+    case "piper":
+      return new PiperProvider();
     case "openai":
       return new OpenAITTSProvider();
     case "say":
       return new MacSayProvider();
     default:
-      throw new Error(`Unknown TTS provider "${chosen}". Use "say" or "openai".`);
+      throw new Error(`Unknown TTS provider "${chosen}". Use "piper", "say", or "openai".`);
   }
 }
 
-export { MacSayProvider, macSayAvailable, OpenAITTSProvider };
+/**
+ * Pick a backend when the caller did not name one.
+ *
+ * Piper sounds markedly better and is equally free, but needs voice models
+ * fetched once. The macOS voice needs nothing at all. Preferring Piper when it
+ * is present and falling back otherwise means a fresh checkout still produces
+ * audio, and an installed Piper is used without anyone having to remember a
+ * flag.
+ */
+export async function resolveTTSProvider(name?: TTSProviderName): Promise<TTSProvider> {
+  if (name) return getTTSProvider(name);
+  const configured = process.env.TTS_PROVIDER as TTSProviderName | undefined;
+  if (configured) return getTTSProvider(configured);
+  if (await piperAvailable()) return new PiperProvider();
+  return new MacSayProvider();
+}
+
+export { MacSayProvider, macSayAvailable, OpenAITTSProvider, PiperProvider, piperAvailable };
 export { synthesizeEpisode } from "./synthesize.js";
 export type { EpisodeAudio, TTSProvider, TurnTiming } from "./types.js";

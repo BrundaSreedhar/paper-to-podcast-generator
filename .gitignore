@@ -32,3 +32,7 @@ sample_papers/
 
 # generated episode output
 *.episode.json
+
+# local TTS runtime and voice models (large, fetched on demand)
+.venv-tts/
+.voices/
