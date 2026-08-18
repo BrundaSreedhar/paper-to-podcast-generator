@@ -28,11 +28,11 @@ All of this is measured rather than asserted — see [Evaluation](#evaluation).
 | **P1** | Extraction → provider abstraction → dialogue → CLI | ✅ Done |
 | **P2** | LLM-judge evals + frontier-vs-open comparison | ✅ Done |
 | **P3** | Audio (chunked, per-speaker TTS) | ✅ Done |
-| **P4** | Async job model + streaming progress | ⬜ Planned |
+| **P4** | Async job model + streaming progress | ✅ Done |
 | **P5** | Next.js frontend with synced transcript player | ⬜ Planned |
 | **P6** | Tests in CI, deploy, README as pitch | ⬜ Planned |
 
-**The pipeline now runs end to end: PDF → clean structure → dialogue → audio**, covered by 234 unit tests. A frontend and a deployed URL land in P5 and P6.
+**The pipeline now runs end to end: PDF → clean structure → dialogue → audio**, covered by 256 unit tests. A frontend and a deployed URL land in P5 and P6.
 
 Verified end to end on real papers against both Claude and a local open model, and scored by the eval harness rather than by eye — see [Evaluation](#evaluation) for the numbers and their error bars.
 
@@ -167,7 +167,8 @@ lib/
 ├── tts/
 │   ├── wav.ts             RIFF parsing, joining, exact durations
 │   ├── chunk.ts           Sentence-aware splitting for input limits
-│   ├── macSay.ts          macOS `say` backend (free, default)
+│   ├── macSay.ts          macOS `say` backend
+│   ├── piper.ts           Piper open-source neural backend (default)
 │   ├── openaiTts.ts       OpenAI speech backend
 │   └── synthesize.ts      Turns → one file + per-turn timings
 ├── llm/
@@ -192,7 +193,14 @@ lib/
     ├── report.ts           Markdown comparison report and cost estimates
     └── fixtures/           Captured episodes with known verdicts
 
+├── jobs/
+│   ├── types.ts           Stage machine and progress weighting
+│   ├── store.ts           In-memory jobs with subscriptions
+│   ├── errors.ts          Internal failures → user-safe messages
+│   └── pipeline.ts        Paper → episode → audio, reporting as it goes
+
 src/cli.ts                 Generate a single episode
+src/server.ts              HTTP API with server-sent progress
 src/audio.ts               Synthesize an episode into audio
 src/eval.ts                Generate + score across providers
 src/validate-judge.ts      Validate the judge before trusting it
@@ -320,6 +328,50 @@ So the checker needed calibrating before it could be trusted, exactly as the LLM
 
 ---
 
+## API
+
+```bash
+npm run serve
+```
+
+```bash
+curl -F pdf=@paper.pdf -F minutes=4 localhost:8000/api/jobs
+curl -N localhost:8000/api/jobs/<id>/stream
+```
+
+| Route | Purpose |
+|---|---|
+| `POST /api/jobs` | Start a job; returns an id immediately |
+| `GET /api/jobs/:id/stream` | Progress as server-sent events |
+| `GET /api/jobs/:id` | Current state, cost, and events |
+| `GET /api/jobs/:id/audio` | Finished audio |
+| `GET /api/jobs/:id/transcript` | Episode plus per-turn timings |
+
+Generation and synthesis each take tens of seconds, and a minute of silence is indistinguishable from a hang — so the work is a job with a timeline rather than a request that blocks. A live run:
+
+```
+    0%  parsing       Reading the paper
+    4%  parsing       Parsed 49 sections, 9435 words
+    4%  scripting     Writing the episode
+   50%  scripting     Wrote 19 turns
+   52%  synthesizing  Recording turn 1 of 19
+   …
+   85%  synthesizing  Recorded 3.6 minutes · 0 audio errors
+  100%  done          Episode ready
+```
+
+Percentages are weighted by how long each stage actually takes, measured from real runs — scripting is roughly half the wall clock, so finishing it lands at 50% rather than at an equal-thirds 33%.
+
+**A late subscriber gets the whole story.** Connecting after work has started replays every event first, so a page refresh mid-job does not leave the user staring at a blank progress bar.
+
+**Errors are translated before they reach a client.** A raw provider message can carry request details and tells the reader nothing actionable, so each known failure maps to a stable code, a plain description, and a remedy: `context_truncated`, `output_truncated`, `auth_failed`, `rate_limited`, `provider_unreachable`, `unreadable_input`. Anything unrecognized becomes `internal` and the detail stays in the server log.
+
+Everything above lives in `lib/jobs/` and knows nothing about HTTP; `src/server.ts` is transport only, so the same pipeline runs unchanged behind a Next.js route handler in P5.
+
+**Known limit:** jobs are held in memory and lost on restart. The store is three methods behind an interface, so Redis or a database is a drop-in — but the demo does not pretend otherwise.
+
+---
+
 ## Evaluation
 
 ```bash
@@ -419,7 +471,7 @@ This was found the hard way. Running the Amazon Aurora paper (~17k tokens) throu
 ## Development
 
 ```bash
-npm test          # Vitest — 234 tests
+npm test          # Vitest — 256 tests
 npm run typecheck # tsc --noEmit
 npm run lint      # ESLint
 npm run format    # Prettier
