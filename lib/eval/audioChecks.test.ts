@@ -17,11 +17,11 @@ import {
   rmsOfRange,
   runAudioChecks,
   type AudioCheckContext,
-} from "./audioChecks.js";
-import { applyAudioMutation, AUDIO_MUTATIONS } from "./mutateAudio.js";
-import { buildWav, parseWav, type WavFormat } from "../tts/wav.js";
-import type { EpisodeAudio } from "../tts/types.js";
-import type { Episode } from "../llm/schema.js";
+} from "./audioChecks";
+import { applyAudioMutation, AUDIO_MUTATIONS } from "./mutateAudio";
+import { buildWav, parseWav, type WavFormat } from "../tts/wav";
+import type { EpisodeAudio } from "../tts/types";
+import type { Episode } from "../llm/schema";
 
 const FMT: WavFormat = { audioFormat: 1, channels: 1, sampleRate: 22050, bitsPerSample: 16 };
 const WPM = 150;

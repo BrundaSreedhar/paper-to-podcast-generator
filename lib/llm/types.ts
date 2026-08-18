@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { ProviderName } from "../config/env.js";
+import type { ProviderName } from "../config/env";
 
 /** A request for structured output validated against a Zod schema. */
 export interface StructuredRequest<T> {

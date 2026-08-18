@@ -1,4 +1,4 @@
-import type { EvalResult } from "./types.js";
+import type { EvalResult } from "./types";
 
 /** Approximate USD per million tokens, for order-of-magnitude cost reporting. */
 const PRICING: Record<string, { in: number; out: number; cacheRead: number }> = {

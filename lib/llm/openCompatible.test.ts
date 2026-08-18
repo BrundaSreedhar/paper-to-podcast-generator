@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractJson } from "./openCompatible.js";
+import { extractJson } from "./openCompatible";
 
 describe("extractJson", () => {
   it("parses a bare JSON object", () => {

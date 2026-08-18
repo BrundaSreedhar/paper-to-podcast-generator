@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { describeZodError } from "./anthropic.js";
-import { OutputTruncationError } from "./errors.js";
+import { describeZodError } from "./anthropic";
+import { OutputTruncationError } from "./errors";
 
 describe("describeZodError", () => {
   it("summarizes field paths and messages", () => {

@@ -1,7 +1,7 @@
-import { MacSayProvider, macSayAvailable } from "./macSay.js";
-import { PiperProvider, piperAvailable } from "./piper.js";
-import { OpenAITTSProvider } from "./openaiTts.js";
-import type { TTSProvider } from "./types.js";
+import { MacSayProvider, macSayAvailable } from "./macSay";
+import { PiperProvider, piperAvailable } from "./piper";
+import { OpenAITTSProvider } from "./openaiTts";
+import type { TTSProvider } from "./types";
 
 export type TTSProviderName = "piper" | "say" | "openai";
 
@@ -41,5 +41,5 @@ export async function resolveTTSProvider(name?: TTSProviderName): Promise<TTSPro
 }
 
 export { MacSayProvider, macSayAvailable, OpenAITTSProvider, PiperProvider, piperAvailable };
-export { synthesizeEpisode } from "./synthesize.js";
-export type { EpisodeAudio, TTSProvider, TurnTiming } from "./types.js";
+export { synthesizeEpisode } from "./synthesize";
+export type { EpisodeAudio, TTSProvider, TurnTiming } from "./types";

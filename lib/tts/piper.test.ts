@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { piperAvailable, voiceName } from "./piper.js";
-import { getTTSProvider, resolveTTSProvider } from "./index.js";
+import { piperAvailable, voiceName } from "./piper";
+import { getTTSProvider, resolveTTSProvider } from "./index";
 
 describe("voiceName", () => {
   it("reduces a model path to the voice's name for reporting", () => {

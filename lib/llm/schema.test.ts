@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { EpisodeSchema } from "./schema.js";
+import { EpisodeSchema } from "./schema";
 
 const VALID = {
   summary: "A paper about turning papers into podcasts.",

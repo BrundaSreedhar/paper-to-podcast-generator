@@ -15,8 +15,8 @@
  * signal being sought is a turn that mostly vanished, not one where a
  * recognizer misheard a word.
  */
-import type { Episode } from "../llm/schema.js";
-import type { CheckResult } from "./types.js";
+import type { Episode } from "../llm/schema";
+import type { CheckResult } from "./types";
 
 /** Below this share of a turn's words, treat the turn as not spoken. */
 const TURN_RECALL_FLOOR = 0.6;

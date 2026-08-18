@@ -8,11 +8,11 @@
  * faithfulness score — just an incorrect one — so nothing would surface it.
  */
 import { describe, it, expect } from "vitest";
-import { extractClaims, scoreCoverage, verifyClaims } from "./judge.js";
-import type { Claim } from "./types.js";
-import type { LLMProvider, StructuredRequest, StructuredResult } from "../llm/types.js";
-import type { PaperStructure } from "../pdf/extract.js";
-import type { Episode } from "../llm/schema.js";
+import { extractClaims, scoreCoverage, verifyClaims } from "./judge";
+import type { Claim } from "./types";
+import type { LLMProvider, StructuredRequest, StructuredResult } from "../llm/types";
+import type { PaperStructure } from "../pdf/extract";
+import type { Episode } from "../llm/schema";
 
 const PAPER: PaperStructure = {
   title: "A Test Paper",

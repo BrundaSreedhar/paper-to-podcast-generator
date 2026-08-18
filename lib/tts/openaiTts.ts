@@ -11,9 +11,9 @@
  * chunker can respect it rather than discovering it as a runtime failure.
  */
 import OpenAI from "openai";
-import { openaiConfig } from "../config/env.js";
-import { buildWav } from "./wav.js";
-import type { Speaker, TTSProvider } from "./types.js";
+import { openaiConfig } from "../config/env";
+import { buildWav } from "./wav";
+import type { Speaker, TTSProvider } from "./types";
 
 /** The API returns headerless PCM at this fixed rate for the `pcm` format. */
 const PCM_SAMPLE_RATE = 24000;

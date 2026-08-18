@@ -20,8 +20,8 @@ import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { piperConfig } from "../config/env.js";
-import type { Speaker, TTSProvider } from "./types.js";
+import { piperConfig } from "../config/env";
+import type { Speaker, TTSProvider } from "./types";
 
 const run = promisify(execFile);
 

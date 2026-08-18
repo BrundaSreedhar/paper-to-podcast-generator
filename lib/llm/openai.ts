@@ -1,10 +1,10 @@
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import type { z } from "zod";
-import { openaiConfig } from "../config/env.js";
-import { OutputTruncationError } from "./errors.js";
-import { joinCacheableContext } from "./promptParts.js";
-import type { LLMProvider, StructuredRequest, StructuredResult } from "./types.js";
+import { openaiConfig } from "../config/env";
+import { OutputTruncationError } from "./errors";
+import { joinCacheableContext } from "./promptParts";
+import type { LLMProvider, StructuredRequest, StructuredResult } from "./types";
 
 /**
  * OpenAI gets structured output via strict `response_format: json_schema`,

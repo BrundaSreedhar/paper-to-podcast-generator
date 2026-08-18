@@ -16,10 +16,10 @@ import { join } from "node:path";
 import cors from "cors";
 import express from "express";
 import multer from "multer";
-import { JobStore } from "../lib/jobs/store.js";
-import { runJob } from "../lib/jobs/pipeline.js";
-import type { ProviderName } from "../lib/config/env.js";
-import type { TTSProviderName } from "../lib/tts/index.js";
+import { JobStore } from "../lib/jobs/store";
+import { runJob } from "../lib/jobs/pipeline";
+import type { ProviderName } from "../lib/config/env";
+import type { TTSProviderName } from "../lib/tts/index";
 
 const AUDIO_DIR = join(process.cwd(), "public", "audio");
 const PORT = Number(process.env.PORT ?? 8000);

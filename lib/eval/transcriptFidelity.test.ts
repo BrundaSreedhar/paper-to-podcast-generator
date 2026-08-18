@@ -9,8 +9,8 @@ import {
   normalizeWords,
   scoreTranscriptFidelity,
   wordRecall,
-} from "./transcriptFidelity.js";
-import type { Episode } from "../llm/schema.js";
+} from "./transcriptFidelity";
+import type { Episode } from "../llm/schema";
 
 const TURNS = [
   "Welcome to PaperCast. Today the paper is Amazon Aurora, and the authors argue the network is the real constraint on throughput.",

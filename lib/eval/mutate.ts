@@ -11,7 +11,7 @@
  * Every mutation names the check expected to catch it, so a mutation that goes
  * unnoticed is a measurable gap rather than a silent one.
  */
-import type { Episode } from "../llm/schema.js";
+import type { Episode } from "../llm/schema";
 
 export type MutationKind =
   | "swap-number"

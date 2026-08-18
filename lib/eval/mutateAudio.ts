@@ -6,8 +6,8 @@
  * drifting out of step with the file it describes. Each is silent on playback —
  * the episode still plays — which is exactly why they need a machine to notice.
  */
-import { buildWav, parseWav } from "../tts/wav.js";
-import type { EpisodeAudio } from "../tts/types.js";
+import { buildWav, parseWav } from "../tts/wav";
+import type { EpisodeAudio } from "../tts/types";
 
 export type AudioMutationKind =
   | "silence-turn"

@@ -5,8 +5,8 @@
  * a biased measurement into an apparently neutral one.
  */
 import { describe, it, expect } from "vitest";
-import { estimateCost, renderMarkdown } from "./report.js";
-import type { EvalResult } from "./types.js";
+import { estimateCost, renderMarkdown } from "./report";
+import type { EvalResult } from "./types";
 
 function result(over: Partial<EvalResult> = {}): EvalResult {
   return {

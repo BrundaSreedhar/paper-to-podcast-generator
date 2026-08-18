@@ -1,8 +1,8 @@
-import { activeProvider, type ProviderName } from "../config/env.js";
-import type { LLMProvider } from "./types.js";
-import { AnthropicProvider } from "./anthropic.js";
-import { OpenAIProvider } from "./openai.js";
-import { OpenCompatibleProvider } from "./openCompatible.js";
+import { activeProvider, type ProviderName } from "../config/env";
+import type { LLMProvider } from "./types";
+import { AnthropicProvider } from "./anthropic";
+import { OpenAIProvider } from "./openai";
+import { OpenCompatibleProvider } from "./openCompatible";
 
 /** Instantiate a provider by name (defaults to LLM_PROVIDER from env). */
 export function getProvider(name: ProviderName = activeProvider()): LLMProvider {
@@ -16,5 +16,5 @@ export function getProvider(name: ProviderName = activeProvider()): LLMProvider 
   }
 }
 
-export type { LLMProvider, StructuredRequest, StructuredResult } from "./types.js";
-export * from "./schema.js";
+export type { LLMProvider, StructuredRequest, StructuredResult } from "./types";
+export * from "./schema";

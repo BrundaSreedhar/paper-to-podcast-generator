@@ -10,10 +10,10 @@
  * backend's limit, and every chunk's duration is measured rather than estimated.
  * Exceeding the limit is now impossible by construction rather than caught.
  */
-import type { Episode } from "../llm/schema.js";
-import { chunkForSynthesis } from "./chunk.js";
-import { joinWavs } from "./wav.js";
-import type { EpisodeAudio, TTSProvider, TurnTiming } from "./types.js";
+import type { Episode } from "../llm/schema";
+import { chunkForSynthesis } from "./chunk";
+import { joinWavs } from "./wav";
+import type { EpisodeAudio, TTSProvider, TurnTiming } from "./types";
 
 export interface SynthesizeOptions {
   provider: TTSProvider;

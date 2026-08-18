@@ -1,0 +1,207 @@
+"use client";
+
+import { useCallback, useRef, useState } from "react";
+import { TranscriptPlayer, type Timing, type Turn } from "./components/TranscriptPlayer";
+
+const STAGES = ["parsing", "scripting", "synthesizing", "verifying"] as const;
+const STAGE_LABELS: Record<string, string> = {
+  parsing: "Reading the paper",
+  scripting: "Writing the episode",
+  synthesizing: "Recording it",
+  verifying: "Checking the audio against the script",
+};
+
+interface Progress { stage: string; percent: number; message: string }
+interface Summary {
+  paperTitle?: string;
+  totalMs?: number;
+  transcriptRecall?: number;
+  cost?: { llmInputTokens: number; llmOutputTokens: number; ttsCalls: number; usd?: number };
+}
+
+export default function Home() {
+  const [file, setFile] = useState<File | null>(null);
+  const [minutes, setMinutes] = useState(4);
+  const [verify, setVerify] = useState(false);
+  const [over, setOver] = useState(false);
+
+  const [progress, setProgress] = useState<Progress | null>(null);
+  const [error, setError] = useState<{ message: string; remedy?: string } | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [timings, setTimings] = useState<Timing[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const running = progress !== null && !summary && !error;
+
+  const start = useCallback(async () => {
+    if (!file) return;
+    setError(null);
+    setSummary(null);
+    setTurns([]);
+    setProgress({ stage: "queued", percent: 0, message: "Starting" });
+
+    const body = new FormData();
+    body.set("pdf", file);
+    body.set("minutes", String(minutes));
+    body.set("verify", String(verify));
+
+    const res = await fetch("/api/jobs", { method: "POST", body });
+    if (!res.ok) {
+      setProgress(null);
+      setError({ message: (await res.json()).error ?? "Could not start the job." });
+      return;
+    }
+    const { id } = await res.json();
+    setJobId(id);
+
+    // Server-sent events rather than polling: the server already knows when
+    // something changed, and a job emits progress for every turn it records.
+    const source = new EventSource(`/api/jobs/${id}/stream`);
+    source.addEventListener("progress", (e) => setProgress(JSON.parse(e.data)));
+    source.addEventListener("failed", (e) => {
+      setError(JSON.parse(e.data));
+      setProgress(null);
+      source.close();
+    });
+    source.addEventListener("done", async (e) => {
+      setSummary(JSON.parse(e.data));
+      source.close();
+      const t = await fetch(`/api/jobs/${id}/transcript`).then((r) => r.json());
+      setTurns(t.episode.turns);
+      setTimings(t.timings ?? []);
+    });
+    source.onerror = () => source.close();
+  }, [file, minutes, verify]);
+
+  const stageIndex = progress ? STAGES.indexOf(progress.stage as (typeof STAGES)[number]) : -1;
+
+  return (
+    <main className="wrap">
+      <h1>PaperCast</h1>
+      <p className="sub">
+        A paper in, a two-host episode out — saying only what the paper says.
+      </p>
+
+      {!running && !summary && (
+        <section>
+          <div
+            className={`drop${over ? " over" : ""}`}
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setOver(true);
+            }}
+            onDragLeave={() => setOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setOver(false);
+              const f = e.dataTransfer.files[0];
+              if (f?.type === "application/pdf") setFile(f);
+            }}
+          >
+            <strong>{file ? file.name : "Drop a paper here"}</strong>
+            <span>{file ? `${(file.size / 1048576).toFixed(1)} MB` : "or click to choose a PDF"}</span>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="application/pdf"
+            hidden
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
+
+          <div className="controls">
+            <label>
+              Length
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={minutes}
+                onChange={(e) => setMinutes(Number(e.target.value))}
+                style={{ width: "4rem" }}
+              />
+              min
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={verify}
+                onChange={(e) => setVerify(e.target.checked)}
+              />
+              verify the audio afterwards
+            </label>
+            <button onClick={start} disabled={!file}>
+              Make the episode
+            </button>
+          </div>
+        </section>
+      )}
+
+      {progress && !summary && (
+        <section className="card" style={{ marginTop: "1.5rem" }}>
+          <div className="stages">
+            {STAGES.map((s, i) => (
+              <div
+                key={s}
+                className={`stage${i === stageIndex ? " active" : ""}${i < stageIndex ? " complete" : ""}`}
+              >
+                <span className="dot" />
+                {i === stageIndex ? progress.message : STAGE_LABELS[s]}
+              </div>
+            ))}
+          </div>
+          <div className="bar">
+            <i style={{ width: `${progress.percent}%` }} />
+          </div>
+        </section>
+      )}
+
+      {error && (
+        <section className="err" style={{ marginTop: "1.5rem" }}>
+          <strong>That didn&apos;t work</strong>
+          {error.message}
+          {error.remedy && <div style={{ marginTop: "0.4rem", color: "var(--muted)" }}>{error.remedy}</div>}
+        </section>
+      )}
+
+      {summary && (
+        <section style={{ marginTop: "1.5rem" }}>
+          {summary.paperTitle && (
+            <p className="sub" style={{ marginBottom: "1rem" }}>{summary.paperTitle}</p>
+          )}
+          <div className="meta" style={{ marginBottom: "1rem" }}>
+            {summary.totalMs && (
+              <span>
+                <b>
+                  {Math.floor(summary.totalMs / 60000)}:
+                  {String(Math.round((summary.totalMs % 60000) / 1000)).padStart(2, "0")}
+                </b>{" "}
+                long
+              </span>
+            )}
+            {summary.transcriptRecall !== undefined && (
+              <span>
+                <b>{Math.round(summary.transcriptRecall * 100)}%</b> of the script verified in the audio
+              </span>
+            )}
+            {summary.cost?.usd !== undefined && <span><b>${summary.cost.usd.toFixed(3)}</b></span>}
+            <button className="ghost" onClick={() => { setSummary(null); setProgress(null); setFile(null); }}>
+              New episode
+            </button>
+          </div>
+
+          {jobId && turns.length > 0 && (
+            <TranscriptPlayer
+              audioUrl={`/api/jobs/${jobId}/audio`}
+              turns={turns}
+              timings={timings}
+            />
+          )}
+        </section>
+      )}
+    </main>
+  );
+}

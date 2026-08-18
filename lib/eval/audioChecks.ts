@@ -11,10 +11,10 @@
  * Whether the delivery sounds natural needs a human or a speech model; whether
  * a turn of fifty words produced two seconds of audio does not.
  */
-import { parseWav, type ParsedWav } from "../tts/wav.js";
-import type { EpisodeAudio, TurnTiming } from "../tts/types.js";
-import type { Episode } from "../llm/schema.js";
-import type { CheckResult, DeterministicReport } from "./types.js";
+import { parseWav, type ParsedWav } from "../tts/wav";
+import type { EpisodeAudio, TurnTiming } from "../tts/types";
+import type { Episode } from "../llm/schema";
+import type { CheckResult, DeterministicReport } from "./types";
 
 /** Plausible conversational range. Outside it, something went wrong. */
 const MIN_WPM = 80;

@@ -29,10 +29,10 @@ All of this is measured rather than asserted — see [Evaluation](#evaluation).
 | **P2** | LLM-judge evals + frontier-vs-open comparison | ✅ Done |
 | **P3** | Audio (chunked, per-speaker TTS) | ✅ Done |
 | **P4** | Async job model + streaming progress | ✅ Done |
-| **P5** | Next.js frontend with synced transcript player | ⬜ Planned |
+| **P5** | Next.js frontend with synced transcript player | ✅ Done |
 | **P6** | Tests in CI, deploy, README as pitch | ⬜ Planned |
 
-**The pipeline now runs end to end: PDF → clean structure → dialogue → audio**, covered by 256 unit tests. A frontend and a deployed URL land in P5 and P6.
+**The pipeline runs end to end — drop in a PDF, watch it work, listen with a transcript that follows along.** Covered by 256 unit tests. A deployed URL lands in P6.
 
 Verified end to end on real papers against both Claude and a local open model, and scored by the eval harness rather than by eye — see [Evaluation](#evaluation) for the numbers and their error bars.
 
@@ -80,6 +80,14 @@ npm run audio -- paper.episode.json --m4a
 ```
 
 Two voices, one file, plus a per-turn timing map. On macOS this needs no API key and no ffmpeg — see [Audio](#audio).
+
+### 5. Or use the web app
+
+```bash
+npm run dev
+```
+
+Drop a PDF at `localhost:3000`, watch each stage as it happens, then listen with a transcript that highlights the line being spoken. See [Web app](#web-app).
 
 ---
 
@@ -325,6 +333,22 @@ Verification runs **per turn**, using the timings synthesis already produced, an
 - Per-turn transcription then flagged a single turn at **11%** — a 31-second turn that crossed Whisper's 30-second window, returning its first sentence and last three words. Split in half, the same audio transcribed verbatim.
 
 So the checker needed calibrating before it could be trusted, exactly as the LLM judge did. The per-turn timings from P3 are what make it possible at all: without exact boundaries there are no short clips to hand the recognizer.
+
+---
+
+## Web app
+
+```bash
+npm run dev
+```
+
+Upload a paper, watch the stages stream past, then play the episode with a transcript that follows along. Clicking any line seeks to it.
+
+The transcript sync uses the **exact per-turn boundaries recorded during synthesis** — nothing is estimated or force-aligned after the fact. Measured on a live run: the last turn ends at 127.9 s and the audio is 127.9 s long, and clicking a line seeks to within a tenth of a second of where that line begins.
+
+Progress arrives over server-sent events rather than polling, and reloading mid-episode replays the whole history rather than showing an empty bar.
+
+**Why it is not serverless.** A job takes around eighty seconds — longer than a serverless function may run — and the job store is process memory, which separate invocations would not share. The app therefore wants a long-lived Node process (Render, Railway, Fly, a container) rather than Vercel's default. `lib/jobs` is storage-agnostic, so moving the store to Redis is what would unlock a serverless deploy; the constraint is stated rather than discovered at deploy time.
 
 ---
 

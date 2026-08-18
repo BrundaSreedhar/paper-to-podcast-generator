@@ -1,9 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { ZodError, type z } from "zod";
-import { anthropicConfig } from "../config/env.js";
-import { OutputTruncationError } from "./errors.js";
-import type { LLMProvider, StructuredRequest, StructuredResult } from "./types.js";
+import { anthropicConfig } from "../config/env";
+import { OutputTruncationError } from "./errors";
+import type { LLMProvider, StructuredRequest, StructuredResult } from "./types";
 
 const MAX_VALIDATION_RETRIES = 2;
 

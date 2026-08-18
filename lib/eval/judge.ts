@@ -11,20 +11,20 @@
  * short list of annotated contributions. The paper is passed as cacheable
  * context, so comparing several providers on the same paper pays for it once.
  */
-import type { Episode } from "../llm/schema.js";
-import type { LLMProvider, Usage } from "../llm/types.js";
-import { paperToText, type PaperStructure } from "../pdf/extract.js";
+import type { Episode } from "../llm/schema";
+import type { LLMProvider, Usage } from "../llm/types";
+import { paperToText, type PaperStructure } from "../pdf/extract";
 import {
   ClaimExtractionSchema,
   CoverageSchema,
   VerificationSchema,
-} from "./judgeSchema.js";
+} from "./judgeSchema";
 import type {
   Claim,
   ClaimVerdict,
   CoverageReport,
   FaithfulnessReport,
-} from "./types.js";
+} from "./types";
 
 export interface JudgeOptions {
   provider: LLMProvider;

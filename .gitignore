@@ -39,3 +39,8 @@ sample_papers/
 
 # ASR models (large, fetched on demand)
 .models/
+
+# Next.js
+.next/
+next-env.d.ts
+AGENTS.md

@@ -9,10 +9,10 @@
  * tooling, no API key, and in milliseconds.
  */
 import { describe, it, expect } from "vitest";
-import { synthesizeEpisode } from "./synthesize.js";
-import { parseWav, buildWav, type WavFormat } from "./wav.js";
-import type { Speaker, TTSProvider } from "./types.js";
-import type { Episode } from "../llm/schema.js";
+import { synthesizeEpisode } from "./synthesize";
+import { parseWav, buildWav, type WavFormat } from "./wav";
+import type { Speaker, TTSProvider } from "./types";
+import type { Episode } from "../llm/schema";
 
 const FMT: WavFormat = { audioFormat: 1, channels: 1, sampleRate: 22050, bitsPerSample: 16 };
 

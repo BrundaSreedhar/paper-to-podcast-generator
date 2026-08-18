@@ -11,11 +11,11 @@
  * where the source PDFs are not committed.
  */
 import { describe, it, expect } from "vitest";
-import { runDeterministicChecks } from "./checks.js";
-import { applyMutation, MUTATIONS, type MutationKind } from "./mutate.js";
-import type { CheckContext } from "./types.js";
-import type { PaperStructure } from "../pdf/extract.js";
-import type { Episode } from "../llm/schema.js";
+import { runDeterministicChecks } from "./checks";
+import { applyMutation, MUTATIONS, type MutationKind } from "./mutate";
+import type { CheckContext } from "./types";
+import type { PaperStructure } from "../pdf/extract";
+import type { Episode } from "../llm/schema";
 
 const PAPER: PaperStructure = {
   title: "Amazon Aurora: Design Considerations",

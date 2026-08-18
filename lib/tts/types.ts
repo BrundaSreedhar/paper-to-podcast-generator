@@ -1,4 +1,4 @@
-import type { DialogueTurn } from "../llm/schema.js";
+import type { DialogueTurn } from "../llm/schema";
 
 export type Speaker = DialogueTurn["speaker"];
 

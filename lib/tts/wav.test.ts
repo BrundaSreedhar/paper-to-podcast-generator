@@ -6,7 +6,7 @@ import {
   parseWav,
   sameFormat,
   type WavFormat,
-} from "./wav.js";
+} from "./wav";
 
 const FMT: WavFormat = {
   audioFormat: 1,

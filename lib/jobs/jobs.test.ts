@@ -5,11 +5,11 @@
  * something useful without leaking internals.
  */
 import { describe, it, expect } from "vitest";
-import { JobStore } from "./store.js";
-import { overallPercent, isTerminal, STAGE_WEIGHTS, STAGES } from "./types.js";
-import { toJobError } from "./errors.js";
-import { ContextTruncationError } from "../llm/contextGuard.js";
-import { OutputTruncationError } from "../llm/errors.js";
+import { JobStore } from "./store";
+import { overallPercent, isTerminal, STAGE_WEIGHTS, STAGES } from "./types";
+import { toJobError } from "./errors";
+import { ContextTruncationError } from "../llm/contextGuard";
+import { OutputTruncationError } from "../llm/errors";
 
 const opts = { minutes: 4, verify: false };
 

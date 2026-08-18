@@ -10,19 +10,19 @@
  * Express route, a Next.js handler, or a test can all drive the same code.
  */
 import { writeFile } from "node:fs/promises";
-import { extractPaper } from "../pdf/extract.js";
-import { generateEpisode } from "../llm/generateEpisode.js";
-import { getProvider } from "../llm/index.js";
-import type { ProviderName } from "../config/env.js";
-import { resolveTTSProvider, synthesizeEpisode, type TTSProviderName } from "../tts/index.js";
-import { sliceWav } from "../tts/wav.js";
-import { runAudioChecks } from "../eval/audioChecks.js";
-import { WhisperCppProvider, whisperAvailable } from "../eval/asr.js";
-import { verifyPerTurn } from "../eval/transcriptFidelity.js";
-import { estimateCost } from "../eval/report.js";
-import { toJobError } from "./errors.js";
-import { overallPercent } from "./types.js";
-import type { JobStore } from "./store.js";
+import { extractPaper } from "../pdf/extract";
+import { generateEpisode } from "../llm/generateEpisode";
+import { getProvider } from "../llm/index";
+import type { ProviderName } from "../config/env";
+import { resolveTTSProvider, synthesizeEpisode, type TTSProviderName } from "../tts/index";
+import { sliceWav } from "../tts/wav";
+import { runAudioChecks } from "../eval/audioChecks";
+import { WhisperCppProvider, whisperAvailable } from "../eval/asr";
+import { verifyPerTurn } from "../eval/transcriptFidelity";
+import { estimateCost } from "../eval/report";
+import { toJobError } from "./errors";
+import { overallPercent } from "./types";
+import type { JobStore } from "./store";
 
 export interface RunJobInput {
   pdf: Buffer;

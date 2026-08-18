@@ -9,7 +9,7 @@
  * is stated rather than hidden.
  */
 import { randomUUID } from "node:crypto";
-import { isTerminal, type Job, type JobEvent, type JobStage } from "./types.js";
+import { isTerminal, type Job, type JobEvent, type JobStage } from "./types";
 
 type Listener = (job: Job, event: JobEvent) => void;
 

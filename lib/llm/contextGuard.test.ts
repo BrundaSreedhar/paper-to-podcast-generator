@@ -3,7 +3,7 @@ import {
   assertNoSilentTruncation,
   ContextTruncationError,
   estimateTokens,
-} from "./contextGuard.js";
+} from "./contextGuard";
 
 const long = (tokens: number) => "x".repeat(tokens * 4);
 

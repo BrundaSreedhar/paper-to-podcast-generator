@@ -12,12 +12,12 @@ import { execFile } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { promisify } from "node:util";
-import { EpisodeSchema, type Episode } from "../lib/llm/schema.js";
-import { sliceWav } from "../lib/tts/wav.js";
-import { resolveTTSProvider, synthesizeEpisode, type TTSProviderName } from "../lib/tts/index.js";
-import { runAudioChecks } from "../lib/eval/audioChecks.js";
-import { WhisperCppProvider, whisperAvailable } from "../lib/eval/asr.js";
-import { fidelityCheck, verifyPerTurn } from "../lib/eval/transcriptFidelity.js";
+import { EpisodeSchema, type Episode } from "../lib/llm/schema";
+import { sliceWav } from "../lib/tts/wav";
+import { resolveTTSProvider, synthesizeEpisode, type TTSProviderName } from "../lib/tts/index";
+import { runAudioChecks } from "../lib/eval/audioChecks";
+import { WhisperCppProvider, whisperAvailable } from "../lib/eval/asr";
+import { fidelityCheck, verifyPerTurn } from "../lib/eval/transcriptFidelity";
 
 const run = promisify(execFile);
 

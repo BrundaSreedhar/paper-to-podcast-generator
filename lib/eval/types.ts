@@ -1,5 +1,5 @@
-import type { Episode } from "../llm/schema.js";
-import type { PaperStructure } from "../pdf/extract.js";
+import type { Episode } from "../llm/schema";
+import type { PaperStructure } from "../pdf/extract";
 
 /** Severity of a failed check. Errors gate CI; warnings are reported only. */
 export type Severity = "error" | "warning";

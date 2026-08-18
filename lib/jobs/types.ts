@@ -1,5 +1,5 @@
-import type { Episode } from "../llm/schema.js";
-import type { TurnTiming } from "../tts/types.js";
+import type { Episode } from "../llm/schema";
+import type { TurnTiming } from "../tts/types";
 
 /**
  * Stages a job moves through, in order. Generation and synthesis each take tens

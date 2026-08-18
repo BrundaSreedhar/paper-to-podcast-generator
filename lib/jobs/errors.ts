@@ -6,9 +6,9 @@
  * and tell the reader nothing they can do. Each known failure is mapped to a
  * stable code, a plain description, and a remedy where one exists.
  */
-import { ContextTruncationError } from "../llm/contextGuard.js";
-import { OutputTruncationError } from "../llm/errors.js";
-import type { JobError } from "./types.js";
+import { ContextTruncationError } from "../llm/contextGuard";
+import { OutputTruncationError } from "../llm/errors";
+import type { JobError } from "./types";
 
 export function toJobError(err: unknown): JobError {
   if (err instanceof ContextTruncationError) {

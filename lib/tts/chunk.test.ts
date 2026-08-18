@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { chunkForSynthesis, splitSentences } from "./chunk.js";
+import { chunkForSynthesis, splitSentences } from "./chunk";
 
 describe("splitSentences", () => {
   it("keeps terminal punctuation with its sentence", () => {
