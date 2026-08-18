@@ -27,12 +27,12 @@ All of this is measured rather than asserted — see [Evaluation](#evaluation).
 | **P0** | Foundations, secrets hygiene, toolchain | ✅ Done |
 | **P1** | Extraction → provider abstraction → dialogue → CLI | ✅ Done |
 | **P2** | LLM-judge evals + frontier-vs-open comparison | ✅ Done |
-| **P3** | Audio (chunked, per-speaker TTS) | ⬜ Planned |
+| **P3** | Audio (chunked, per-speaker TTS) | ✅ Done |
 | **P4** | Async job model + streaming progress | ⬜ Planned |
 | **P5** | Next.js frontend with synced transcript player | ⬜ Planned |
 | **P6** | Tests in CI, deploy, README as pitch | ⬜ Planned |
 
-**Today the project generates transcripts, not audio.** The full text pipeline (PDF → clean structure → summary + key points + dialogue) works end to end and is covered by 148 unit tests. Audio synthesis lands in P3.
+**The pipeline now runs end to end: PDF → clean structure → dialogue → audio**, covered by 189 unit tests. A frontend and a deployed URL land in P5 and P6.
 
 Verified end to end on real papers against both Claude and a local open model, and scored by the eval harness rather than by eye — see [Evaluation](#evaluation) for the numbers and their error bars.
 
@@ -72,6 +72,14 @@ npm run generate -- path/to/paper.pdf
 ```
 
 The CLI prints the summary, key points, and the first few dialogue turns, then writes the complete episode as JSON.
+
+### 4. Turn it into audio
+
+```bash
+npm run audio -- paper.episode.json --m4a
+```
+
+Two voices, one file, plus a per-turn timing map. On macOS this needs no API key and no ffmpeg — see [Audio](#audio).
 
 ---
 
@@ -156,6 +164,12 @@ lib/
 ├── config/env.ts          Typed env loading and provider selection
 ├── pdf/
 │   └── extract.ts         PDF → { title, abstract, sections[] }, noise stripped
+├── tts/
+│   ├── wav.ts             RIFF parsing, joining, exact durations
+│   ├── chunk.ts           Sentence-aware splitting for input limits
+│   ├── macSay.ts          macOS `say` backend (free, default)
+│   ├── openaiTts.ts       OpenAI speech backend
+│   └── synthesize.ts      Turns → one file + per-turn timings
 ├── llm/
 │   ├── schema.ts          The Zod episode schema — single source of truth
 │   ├── types.ts           LLMProvider interface
@@ -175,6 +189,7 @@ lib/
     └── fixtures/           Captured episodes with known verdicts
 
 src/cli.ts                 Generate a single episode
+src/audio.ts               Synthesize an episode into audio
 src/eval.ts                Generate + score across providers
 src/validate-judge.ts      Validate the judge before trusting it
 ```
@@ -198,6 +213,35 @@ Each provider reaches the same guaranteed shape by a different route:
 | **Open models** | Schema embedded in the prompt + JSON mode, then Zod validation with the parse error fed back for self-correction |
 
 Forcing `tool_choice` guarantees Claude *calls* the tool, not that the input matches the schema — unlike OpenAI's `strict` mode, tool input is validated loosely, and a field occasionally comes back mistyped. Validation and retry therefore belong on the Claude path too, not only the open-model one.
+
+---
+
+## Audio
+
+```bash
+npm run audio -- paper.episode.json               # WAV + timings
+npm run audio -- paper.episode.json --m4a         # also compressed
+npm run audio -- paper.episode.json --provider openai --gap 500
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--provider` | `say` | `say` (macOS, free) or `openai` |
+| `--gap MS` | `350` | Silence between turns |
+| `--out FILE` | input path | Output stem for `.wav` / `.timings.json` |
+| `--m4a` | off | Also emit AAC via `afconvert` |
+
+Measured on the Aurora episode: **6:04 of audio from 23 turns in 22 seconds**, entirely locally.
+
+**No ffmpeg, no API key.** The default backend is the macOS `say` command, so a fresh checkout produces a complete episode with audio and no account anywhere. The voices are dated next to a neural model — a fair trade for a default; `--provider openai` swaps in better ones.
+
+Segments are joined in pure TypeScript by parsing RIFF chunks and concatenating PCM. That avoids an ffmpeg dependency and buys something better: **exact per-turn timings derived from sample counts** rather than probed. The computed total matches macOS `afinfo` to the millisecond (364.004s), and those timings are what will drive transcript highlighting in P5.
+
+Each **turn** is a synthesis call, chunked further at sentence boundaries when it exceeds the backend's input limit. This is the fix for the original bug: the first version sent an entire script in one call, was rejected past 4,096 characters, swallowed the error, and returned a transcript with `audioUrl: null` — the headline feature missing for exactly the long episodes it existed to serve. Exceeding the limit is now impossible by construction rather than caught.
+
+Sentence splitting is decimal-aware, since a naive split treats the period in "5.38 milliseconds" as a sentence end and cuts mid-figure — audible as an unnatural break, because the halves are synthesized with independent prosody.
+
+Joining rejects mismatched sample rates rather than concatenating them, which would otherwise play back at the wrong speed and sound like corruption rather than a bug.
 
 ---
 
@@ -300,7 +344,7 @@ This was found the hard way. Running the Amazon Aurora paper (~17k tokens) throu
 ## Development
 
 ```bash
-npm test          # Vitest — 148 tests
+npm test          # Vitest — 189 tests
 npm run typecheck # tsc --noEmit
 npm run lint      # ESLint
 npm run format    # Prettier

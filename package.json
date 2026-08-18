@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "eval:validate": "tsx src/validate-judge.ts",
-    "eval": "tsx src/eval.ts"
+    "eval": "tsx src/eval.ts",
+    "audio": "tsx src/audio.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
