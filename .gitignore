@@ -36,3 +36,6 @@ sample_papers/
 # local TTS runtime and voice models (large, fetched on demand)
 .venv-tts/
 .voices/
+
+# ASR models (large, fetched on demand)
+.models/

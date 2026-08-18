@@ -114,6 +114,26 @@ export function buildWav(format: WavFormat, data: Buffer): Buffer {
   return Buffer.concat([header, data]);
 }
 
+/**
+ * Extract the audio between two points on the timeline.
+ *
+ * Used to verify one turn at a time. Recognizers are markedly more accurate on
+ * a short clip than on a long recording, so having exact per-turn boundaries
+ * turns transcription from an approximation into a reliable check.
+ */
+export function sliceWav(buf: Buffer, startMs: number, endMs: number): Buffer {
+  const { format, data } = parseWav(buf);
+  const bytesPerFrame = (format.bitsPerSample / 8) * format.channels;
+  const clamp = (ms: number) =>
+    Math.min(
+      data.length,
+      Math.max(0, Math.floor((ms / 1000) * format.sampleRate) * bytesPerFrame),
+    );
+  const start = clamp(startMs);
+  const end = Math.max(start, clamp(endMs));
+  return buildWav(format, data.subarray(start, end));
+}
+
 export interface JoinedSegment {
   startMs: number;
   endMs: number;

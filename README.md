@@ -32,7 +32,7 @@ All of this is measured rather than asserted — see [Evaluation](#evaluation).
 | **P5** | Next.js frontend with synced transcript player | ⬜ Planned |
 | **P6** | Tests in CI, deploy, README as pitch | ⬜ Planned |
 
-**The pipeline now runs end to end: PDF → clean structure → dialogue → audio**, covered by 218 unit tests. A frontend and a deployed URL land in P5 and P6.
+**The pipeline now runs end to end: PDF → clean structure → dialogue → audio**, covered by 234 unit tests. A frontend and a deployed URL land in P5 and P6.
 
 Verified end to end on real papers against both Claude and a local open model, and scored by the eval harness rather than by eye — see [Evaluation](#evaluation) for the numbers and their error bars.
 
@@ -185,6 +185,8 @@ lib/
     ├── judgeSchema.ts      Strict-mode-safe schemas for the judge passes
     ├── dataset.ts          Paper discovery, annotations, fixture loading
     ├── audioChecks.ts      Deterministic checks on synthesized audio
+    ├── asr.ts              Speech recognition behind an interface
+    ├── transcriptFidelity.ts  What the audio says vs what the script said
     ├── mutate.ts           Deliberate corruptions for sensitivity testing
     ├── mutateAudio.ts      Audio corruptions for the same
     ├── report.ts           Markdown comparison report and cost estimates
@@ -232,6 +234,7 @@ npm run audio -- paper.episode.json --provider openai --gap 500
 | `--gap MS` | `350` | Silence between turns |
 | `--out FILE` | input path | Output stem for `.wav` / `.timings.json` |
 | `--m4a` | off | Also emit AAC via `afconvert` |
+| `--verify` | off | Transcribe the audio back and check it against the script |
 | `--target N` | — | Requested minutes, to check the episode actually lasts that long |
 
 Three backends, all behind one interface:
@@ -291,6 +294,29 @@ Synthesis has one failure mode that matters and is easy to miss: **text silently
 Sensitivity is measured the same way as the text layer — the audio is deliberately corrupted (silence a turn, truncate the file, desync the timeline, overlap turns, drop a timing) and each corruption names the check that must catch it. **5 of 5 detected, no false positives on the control.** The real Aurora episode scores 100% with no errors or warnings, which also calibrates the speech-rate thresholds against genuine speech rather than a synthetic tone.
 
 What is deliberately *not* checked: prosody, naturalness, and pronunciation. Those need a human or a speech model, and asserting them cheaply would be theatre.
+
+### Verifying what the audio actually says
+
+`speech-rate` *infers* text loss from a turn being too short. `--verify` **measures** it: the audio is transcribed back with [whisper.cpp](https://github.com/ggml-org/whisper.cpp) and compared to the script, word for word.
+
+```bash
+brew install whisper-cpp
+curl -L -o .models/ggml-small.en.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin
+```
+
+```bash
+npm run audio -- paper.episode.json --verify
+```
+
+Measured on the Aurora episode: **96% of the script recognized in the audio**, no turns flagged. The remaining 4% is recognition noise — "MySQL" heard as "My SQL" — not missing speech.
+
+Verification runs **per turn**, using the timings synthesis already produced, and splits any turn longer than 20 seconds. Both details are load-bearing, and both were found by disbelieving a bad number rather than reasoning:
+
+- Transcribing the whole episode in one pass reported **61%** and flagged three turns. Extracting those turns and transcribing them individually showed the audio was word-perfect. Recognizers skip material on long recordings.
+- Per-turn transcription then flagged a single turn at **11%** — a 31-second turn that crossed Whisper's 30-second window, returning its first sentence and last three words. Split in half, the same audio transcribed verbatim.
+
+So the checker needed calibrating before it could be trusted, exactly as the LLM judge did. The per-turn timings from P3 are what make it possible at all: without exact boundaries there are no short clips to hand the recognizer.
 
 ---
 
@@ -393,7 +419,7 @@ This was found the hard way. Running the Amazon Aurora paper (~17k tokens) throu
 ## Development
 
 ```bash
-npm test          # Vitest — 218 tests
+npm test          # Vitest — 234 tests
 npm run typecheck # tsc --noEmit
 npm run lint      # ESLint
 npm run format    # Prettier

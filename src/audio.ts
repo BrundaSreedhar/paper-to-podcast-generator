@@ -13,8 +13,11 @@ import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { promisify } from "node:util";
 import { EpisodeSchema, type Episode } from "../lib/llm/schema.js";
+import { sliceWav } from "../lib/tts/wav.js";
 import { resolveTTSProvider, synthesizeEpisode, type TTSProviderName } from "../lib/tts/index.js";
 import { runAudioChecks } from "../lib/eval/audioChecks.js";
+import { WhisperCppProvider, whisperAvailable } from "../lib/eval/asr.js";
+import { fidelityCheck, verifyPerTurn } from "../lib/eval/transcriptFidelity.js";
 
 const run = promisify(execFile);
 
@@ -45,7 +48,7 @@ async function main() {
   const input = process.argv.slice(2).find((a) => !a.startsWith("--"));
   if (!input) {
     console.error(
-      "Usage: npm run audio -- <episode.json> [--provider piper|say|openai] [--gap MS] [--out FILE] [--m4a]",
+      "Usage: npm run audio -- <episode.json> [--provider piper|say|openai] [--gap MS] [--out FILE] [--m4a] [--verify]",
     );
     process.exit(1);
   }
@@ -105,6 +108,38 @@ async function main() {
   for (const c of checks.checks.filter((x) => !x.passed)) {
     console.log(`    ${c.severity === "error" ? "❌" : "⚠️ "} ${c.id}: ${c.detail}`);
   }
+  // Opt-in, because recognition takes about as long as synthesis. This is the
+  // only check that establishes what the audio actually says rather than
+  // inferring it from duration.
+  if (has("--verify")) {
+    if (!(await whisperAvailable())) {
+      console.log("    ⚠️  --verify needs whisper-cli and a model; see the README.");
+    } else {
+      const asr = new WhisperCppProvider();
+      // Per turn rather than in one pass: recognizers skip material on long
+      // recordings, and the exact timings from synthesis make short clips
+      // possible. Verifying the whole file at once measured 61% on audio that
+      // was word-perfect clip by clip.
+      const fidelity = await verifyPerTurn(
+        episode,
+        result,
+        asr,
+        sliceWav,
+        (done, total) => process.stdout.write(`\r    verifying turn ${done}/${total}…      `),
+      );
+      // Clear the progress line so the result is not written over it.
+      process.stdout.write("\r\x1b[K");
+      const check = fidelityCheck(fidelity);
+      console.log(
+        `    verified: ${Math.round(fidelity.episodeRecall * 100)}% of the script recognized in the audio`,
+      );
+      if (!check.passed) console.log(`    ${check.severity === "error" ? "❌" : "⚠️ "} ${check.detail}`);
+      for (const t of fidelity.suspect.slice(0, 3)) {
+        console.log(`      turn ${t.turnIndex}: missing ${t.missing.slice(0, 6).join(", ")}`);
+      }
+    }
+  }
+
   console.log(`    ${wavPath}`);
   console.log(`    ${timingsPath}`);
 
