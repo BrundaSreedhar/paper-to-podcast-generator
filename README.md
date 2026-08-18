@@ -1,22 +1,76 @@
 # Paper → Podcast
 
-Turn an academic paper into a **faithful** two-host podcast episode — a summary, key points, and a natural host/guest dialogue generated strictly from the paper's own content.
+Turn an academic paper into a two-host podcast episode that says **only what the paper actually says** — and prove it.
 
-Model-agnostic by design: the same pipeline runs on **Claude**, **OpenAI**, or an **open model** (local Ollama or a hosted OSS endpoint) behind a single provider interface.
+```bash
+npm run dev     # drop a PDF at localhost:3000
+```
+
+The interesting problem here is not generating audio. It is that a language model asked to explain a paper will produce something fluent, confident, and partly invented, and nobody re-reads the source to catch it. So this project treats faithfulness as the thing to engineer and measure, at every stage from PDF to waveform.
 
 ---
 
-## North star: faithfulness
+## What it does, measured
 
-The hard part of this problem isn't generating audio — it's generating a script that says only what the paper actually says. Every design decision here serves that goal:
+| | |
+|---|--:|
+| Faithfulness of a clean episode, scored claim by claim | **93%** |
+| Faithfulness of a known-hallucinated episode (the harness must catch it) | **13%** |
+| Injected text corruptions detected | **9 / 9** |
+| Injected audio corruptions detected | **5 / 5** |
+| Script wording verified present in the audio, by transcription | **96%** |
+| Judge variance across repeat runs — the noise floor for any claim above | **±2 pts** |
+| Unit tests | **256** |
 
-- **Section-aware extraction** removes references, appendices, and figure captions before the model ever sees the text, so it can't fabricate citations from a reference list it was shown.
-- **Structured output** (a single schema enforced across all providers) replaces brittle text parsing, so the shape of the result is guaranteed rather than guessed at.
-- **Explicit grounding constraints** in the system prompt: use only the provided paper, never invent numbers or names, say "the paper does not specify" rather than filling gaps.
-- **Speaker constraints**, because fabrication is not only about the science. Left unconstrained, models name the show, hand the speakers doctorates, and slip into "our approach" as though the presenters wrote the paper. The show name is fixed (`PaperCast` by default), the two speakers are unnamed and have no credentials or affiliations, and the work is always attributed to *the authors*. Apart from the show name, every proper noun in the dialogue should come from the paper.
-- **A silent-truncation guard** that refuses to generate at all when the model didn't actually receive the whole paper (see below).
+Every number is reproducible from this repo: `npm run eval`, `npm run eval:validate`, `npm test`.
 
-All of this is measured rather than asserted — see [Evaluation](#evaluation).
+---
+
+## Why it is not just an API call
+
+**Faithfulness is measured, not asserted.** An [LLM judge](#evaluation) decomposes each episode into atomic claims and marks every one `supported`, `unsupported`, or `contradicted` against a quoted passage. A single score out of ten cannot be argued with; a list of verdicts with evidence can be read line by line.
+
+**The grader is itself validated.** Known-bad fixtures, [mutation testing](#sensitivity-mutation-testing) for sensitivity, and [measured variance](#judge-variance) so a three-point difference is never reported as a result. The most useful fixture is a real failure: an episode about MapReduce itemset mining that a local model produced from the Amazon Aurora paper after its context window silently truncated.
+
+**Silent failure is designed against.** The pipeline refuses to generate when the model did not receive the whole paper, refuses to trust audio it has not checked, and [transcribes the finished episode back](#verifying-what-the-audio-actually-says) to confirm the words are really there. Each of those guards exists because the failure happened.
+
+**Fabrication is not only about facts.** Left unconstrained, models name the show, hand the speakers doctorates, and slip into "our approach" as though the presenters wrote the paper. All three are [forbidden and checked](#two-layers).
+
+**Model-agnostic, and it earns the abstraction.** Claude via forced tool-use, OpenAI via strict `json_schema`, and open models via JSON coercion with validation-retry — because open endpoints often have neither. Claude turned out to need the retry path too: forcing `tool_choice` guarantees the tool is *called*, not that its input matches the schema.
+
+**It runs free.** Local Ollama for the script, [Piper](#installing-piper) for the voices, whisper.cpp for verification — a complete episode with no account anywhere. Hosted providers are a config change.
+
+---
+
+## Architecture
+
+```
+   PDF
+    │
+    ▼
+ extract ──────────────► sections, references and appendices stripped
+    │
+    ▼
+ LLMProvider ─────────► Claude · OpenAI · open   (one interface, three routes
+    │                                             to the same guaranteed shape)
+    ▼
+  Episode ────────────► summary · key points · host/guest turns
+    │                          │
+    │                          └──► Layer 1  deterministic checks   free, every commit
+    │                          └──► Layer 2  LLM judge              faithfulness · coverage
+    ▼
+ TTSProvider ─────────► Piper · macOS say · OpenAI
+    │
+    ▼
+  Audio ──────────────► one file + exact per-turn timings
+    │                          │
+    │                          └──► audio checks      timeline · silence · speech rate
+    │                          └──► ASR round-trip     what the audio actually says
+    ▼
+  Web app ────────────► streamed progress, transcript synced to playback
+```
+
+Everything under `lib/` is plain TypeScript with no framework dependency, which is why the same pipeline runs behind a CLI, an Express server, and Next.js route handlers unchanged.
 
 ---
 
@@ -27,14 +81,12 @@ All of this is measured rather than asserted — see [Evaluation](#evaluation).
 | **P0** | Foundations, secrets hygiene, toolchain | ✅ Done |
 | **P1** | Extraction → provider abstraction → dialogue → CLI | ✅ Done |
 | **P2** | LLM-judge evals + frontier-vs-open comparison | ✅ Done |
-| **P3** | Audio (chunked, per-speaker TTS) | ✅ Done |
-| **P4** | Async job model + streaming progress | ✅ Done |
-| **P5** | Next.js frontend with synced transcript player | ✅ Done |
-| **P6** | Tests in CI, deploy, README as pitch | ⬜ Planned |
+| **P3** | Audio: chunked per-speaker TTS with exact timings | ✅ Done |
+| **P4** | Async job model + streamed progress | ✅ Done |
+| **P5** | Web app with a transcript synced to playback | ✅ Done |
+| **P6** | CI on the web build, deployed URL | ⬜ Planned |
 
 **The pipeline runs end to end — drop in a PDF, watch it work, listen with a transcript that follows along.** Covered by 256 unit tests. A deployed URL lands in P6.
-
-Verified end to end on real papers against both Claude and a local open model, and scored by the eval harness rather than by eye — see [Evaluation](#evaluation) for the numbers and their error bars.
 
 ---
 
@@ -163,9 +215,7 @@ A hosted OpenAI-compatible tier (Together, Groq, OpenRouter) removes the RAM con
 
 ---
 
-## Architecture
-
-The core is plain TypeScript under `lib/`, deliberately independent of any web framework so it stays unit-testable in isolation and drops into Next.js route handlers in P5 without rework.
+## Code layout
 
 ```
 lib/
@@ -505,9 +555,9 @@ Tests are deliberately network-free: PDF parsing runs against a flattened-paper 
 
 ---
 
-## Roadmap
+## What is next
 
-- **P3 — Audio.** Per-speaker voices, chunked to respect TTS input limits, concatenated into one episode with per-turn timestamps.
-- **P4 — Backend.** Async job model with streamed stage-by-stage progress, typed errors, token/cost logging.
-- **P5 — Frontend.** Next.js app with drag-and-drop upload, live progress, and an audio player that highlights the current dialogue turn.
-- **P6 — Ship.** CI on every PR, deployed live URL, architecture diagram and eval results in this README.
+- **P6 — Ship.** CI covering the web build, and a deployed URL. The app needs a long-lived Node process rather than serverless: a job runs about eighty seconds and the store is process memory. Moving the store to Redis is what would change that, and `lib/jobs` is storage-agnostic so it can.
+- **More papers.** The provider comparison currently runs on one. It demonstrates the harness works, not which model is better.
+- **An independent judge.** Claude grades its own output on the frontier row, flagged in every report. A second provider breaks the tie; `JUDGE_PROVIDER` exists for it.
+- **Judge sensitivity.** Mutation testing covers the deterministic layers. Running the same corruptions through the LLM judge would give a detection rate for the expensive layer too.
