@@ -14,6 +14,7 @@ import { basename } from "node:path";
 import { promisify } from "node:util";
 import { EpisodeSchema, type Episode } from "../lib/llm/schema.js";
 import { getTTSProvider, synthesizeEpisode, type TTSProviderName } from "../lib/tts/index.js";
+import { runAudioChecks } from "../lib/eval/audioChecks.js";
 
 const run = promisify(execFile);
 
@@ -90,8 +91,20 @@ async function main() {
     ),
   );
 
+  // Verify the output rather than trusting it. Text silently going missing in
+  // synthesis is invisible on playback, so the file is checked before it is
+  // announced as finished.
+  const targetMinutes = arg("--target") ? Number(arg("--target")) : undefined;
+  const checks = runAudioChecks({ episode, audio: result, targetMinutes });
+
   console.log(`\n✅  ${mmss(result.totalMs)} of audio in ${((Date.now() - t0) / 1000).toFixed(0)}s`);
   console.log(`    ${result.calls} synthesis calls across ${result.timings.length} turns`);
+  console.log(
+    `    checks ${(checks.complianceScore * 100).toFixed(0)}% (${checks.errors} errors, ${checks.warnings} warnings)`,
+  );
+  for (const c of checks.checks.filter((x) => !x.passed)) {
+    console.log(`    ${c.severity === "error" ? "❌" : "⚠️ "} ${c.id}: ${c.detail}`);
+  }
   console.log(`    ${wavPath}`);
   console.log(`    ${timingsPath}`);
 

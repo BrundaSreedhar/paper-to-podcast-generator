@@ -32,7 +32,7 @@ All of this is measured rather than asserted — see [Evaluation](#evaluation).
 | **P5** | Next.js frontend with synced transcript player | ⬜ Planned |
 | **P6** | Tests in CI, deploy, README as pitch | ⬜ Planned |
 
-**The pipeline now runs end to end: PDF → clean structure → dialogue → audio**, covered by 189 unit tests. A frontend and a deployed URL land in P5 and P6.
+**The pipeline now runs end to end: PDF → clean structure → dialogue → audio**, covered by 211 unit tests. A frontend and a deployed URL land in P5 and P6.
 
 Verified end to end on real papers against both Claude and a local open model, and scored by the eval harness rather than by eye — see [Evaluation](#evaluation) for the numbers and their error bars.
 
@@ -184,7 +184,9 @@ lib/
     ├── judge.ts            Claim extraction, verification, coverage (Layer 2)
     ├── judgeSchema.ts      Strict-mode-safe schemas for the judge passes
     ├── dataset.ts          Paper discovery, annotations, fixture loading
+    ├── audioChecks.ts      Deterministic checks on synthesized audio
     ├── mutate.ts           Deliberate corruptions for sensitivity testing
+    ├── mutateAudio.ts      Audio corruptions for the same
     ├── report.ts           Markdown comparison report and cost estimates
     └── fixtures/           Captured episodes with known verdicts
 
@@ -230,6 +232,7 @@ npm run audio -- paper.episode.json --provider openai --gap 500
 | `--gap MS` | `350` | Silence between turns |
 | `--out FILE` | input path | Output stem for `.wav` / `.timings.json` |
 | `--m4a` | off | Also emit AAC via `afconvert` |
+| `--target N` | — | Requested minutes, to check the episode actually lasts that long |
 
 Measured on the Aurora episode: **6:04 of audio from 23 turns in 22 seconds**, entirely locally.
 
@@ -242,6 +245,26 @@ Each **turn** is a synthesis call, chunked further at sentence boundaries when i
 Sentence splitting is decimal-aware, since a naive split treats the period in "5.38 milliseconds" as a sentence end and cuts mid-figure — audible as an unnatural break, because the halves are synthesized with independent prosody.
 
 Joining rejects mismatched sample rates rather than concatenating them, which would otherwise play back at the wrong speed and sound like corruption rather than a bug.
+
+### Checking the audio
+
+Synthesis has one failure mode that matters and is easy to miss: **text silently going missing**. A call that drops a chunk or returns an empty buffer still yields a file that plays perfectly, and nobody re-reads a transcript against a waveform. So every run is checked before it is announced as finished:
+
+| Check | Catches |
+|---|---|
+| `audio-parses` | Unreadable or empty output |
+| `turns-voiced` | A turn with no audio at all |
+| `timeline-order` | Overlapping or out-of-order turns |
+| `timeline-matches-audio` | Timings drifting from the file's real length |
+| `silent-turns` | A turn with text but no audible speech (RMS) |
+| `speech-rate` | **Dropped text** — fifty words in two seconds |
+| `episode-duration` | An episode far shorter than requested |
+
+`speech-rate` is the cheap proxy for the ASR round-trip: if a turn's audio is far too short for its word count, content did not survive synthesis. That is invisible on playback and undetectable from the file alone.
+
+Sensitivity is measured the same way as the text layer — the audio is deliberately corrupted (silence a turn, truncate the file, desync the timeline, overlap turns, drop a timing) and each corruption names the check that must catch it. **5 of 5 detected, no false positives on the control.** The real Aurora episode scores 100% with no errors or warnings, which also calibrates the speech-rate thresholds against genuine speech rather than a synthetic tone.
+
+What is deliberately *not* checked: prosody, naturalness, and pronunciation. Those need a human or a speech model, and asserting them cheaply would be theatre.
 
 ---
 
@@ -344,7 +367,7 @@ This was found the hard way. Running the Amazon Aurora paper (~17k tokens) throu
 ## Development
 
 ```bash
-npm test          # Vitest — 189 tests
+npm test          # Vitest — 211 tests
 npm run typecheck # tsc --noEmit
 npm run lint      # ESLint
 npm run format    # Prettier

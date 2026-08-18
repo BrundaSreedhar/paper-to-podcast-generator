@@ -237,6 +237,45 @@ check expected to catch it; the detection-rate test picks it up automatically.
 
 ---
 
+## Audio
+
+Audio is checked for integrity, not aesthetics. Whether the delivery sounds
+natural needs a human or a speech model; whether a turn of fifty words produced
+two seconds of audio does not.
+
+The failure worth catching is **text silently going missing**. A synthesis call
+that drops a chunk, truncates a sentence, or returns an empty buffer still
+yields a file that plays perfectly. Nobody re-reads a transcript against a
+waveform, so the loss is invisible — structurally the same problem as a context
+window quietly discarding a paper.
+
+| Check | Catches | Severity |
+|---|---|---|
+| `audio-parses` | Unreadable or empty output | error |
+| `turns-voiced` | A turn with no audio at all | error |
+| `timeline-order` | Overlapping or out-of-order turns | error |
+| `timeline-matches-audio` | Timings drifting from the file's real length | error |
+| `silent-turns` | Text present, no audible speech (measured by RMS) | error |
+| `speech-rate` | Dropped text: words per minute far outside 80–260 | warning |
+| `episode-duration` | An episode far shorter than requested | warning |
+
+`speech-rate` is a cheap stand-in for transcribing the audio back and comparing
+it to the script. A proper round-trip through a speech recognizer would catch
+missing text definitively, but needs a model and a dependency; comparing spoken
+duration against word count catches the same class of failure for nothing.
+
+`timeline-matches-audio` exists because drift is progressive. A timeline that
+disagrees with its file does not fail loudly — it highlights the wrong line, a
+little further out as the episode goes on.
+
+Sensitivity is measured by the same mutation method as the text layer: silence a
+turn, truncate the file, desync the timeline, overlap two turns, drop a timing.
+**5 of 5 detected, no false positives on the control.** The real Aurora episode
+scores 100%, which also calibrates the speech-rate thresholds against genuine
+speech rather than the synthetic tone used in tests.
+
+---
+
 ## Known limits
 
 - **One paper.** The current comparison demonstrates the harness works, not
@@ -245,5 +284,9 @@ check expected to catch it; the detection-rate test picks it up automatically.
 - **Coverage depends on hand annotation**, so it exists only for annotated
   papers.
 - **Layer 2 sensitivity is unmeasured.** The mutation harness currently exercises
-  the deterministic layer only. Running the same corruptions through the judge
+  the deterministic layers only. Running the same corruptions through the judge
   would give a detection rate for the expensive layer too.
+- **Audio is checked structurally, not perceptually.** Nothing here measures
+  whether the speech sounds good, or whether a word was mispronounced. An ASR
+  round-trip would turn the speech-rate proxy into a real measurement of what
+  the audio actually says.
