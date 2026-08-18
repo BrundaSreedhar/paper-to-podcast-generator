@@ -11,7 +11,7 @@ import {
   ClaimExtractionSchema,
   CoverageSchema,
   VerificationSchema,
-} from "./judgeSchema.js";
+} from "./judgeSchema";
 
 type JsonSchema = {
   type?: string;

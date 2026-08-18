@@ -1,13 +1,13 @@
-import type { ProviderName } from "../config/env.js";
-import { paperToText, type PaperStructure } from "../pdf/extract.js";
-import { getProvider } from "./index.js";
+import type { ProviderName } from "../config/env";
+import { paperToText, type PaperStructure } from "../pdf/extract";
+import { getProvider } from "./index";
 import {
   EPISODE_SCHEMA_DESCRIPTION,
   EPISODE_SCHEMA_NAME,
   EpisodeSchema,
   type Episode,
-} from "./schema.js";
-import type { LLMProvider, Usage } from "./types.js";
+} from "./schema";
+import type { LLMProvider, Usage } from "./types";
 
 /** Average speaking rate used to translate target minutes into a word budget. */
 const WORDS_PER_MINUTE = 150;

@@ -11,8 +11,8 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import { EpisodeSchema } from "../llm/schema.js";
-import { extractPaper, type PaperStructure } from "../pdf/extract.js";
+import { EpisodeSchema } from "../llm/schema";
+import { extractPaper, type PaperStructure } from "../pdf/extract";
 
 // This package compiles to CommonJS, so `__dirname` is the portable choice —
 // `import.meta` is ESM-only and fails the build even though Vitest accepts it.

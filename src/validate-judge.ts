@@ -11,11 +11,11 @@
  *
  *   npm run eval:validate
  */
-import { runDeterministicChecks } from "../lib/eval/checks.js";
-import { checkExpectation, loadFixtures, loadPaper, loadPapers } from "../lib/eval/dataset.js";
-import { judgeEpisode } from "../lib/eval/judge.js";
-import { getProvider } from "../lib/llm/index.js";
-import { activeProvider, type ProviderName } from "../lib/config/env.js";
+import { runDeterministicChecks } from "../lib/eval/checks";
+import { checkExpectation, loadFixtures, loadPaper, loadPapers } from "../lib/eval/dataset";
+import { judgeEpisode } from "../lib/eval/judge";
+import { getProvider } from "../lib/llm/index";
+import { activeProvider, type ProviderName } from "../lib/config/env";
 
 function pct(n: number): string {
   return `${(n * 100).toFixed(0)}%`;

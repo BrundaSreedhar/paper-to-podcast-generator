@@ -7,10 +7,10 @@
  * those are decidable without a model, so they run here: free, instant, and on
  * every commit. The LLM judge is reserved for what genuinely needs judgement.
  */
-import { EpisodeSchema } from "../llm/schema.js";
-import { targetTurnCount } from "../llm/generateEpisode.js";
-import { paperToText } from "../pdf/extract.js";
-import type { CheckContext, CheckResult, DeterministicReport } from "./types.js";
+import { EpisodeSchema } from "../llm/schema";
+import { targetTurnCount } from "../llm/generateEpisode";
+import { paperToText } from "../pdf/extract";
+import type { CheckContext, CheckResult, DeterministicReport } from "./types";
 
 const WORDS_PER_MINUTE = 150;
 /** Episodes shorter than this fraction of target are treated as collapsed. */

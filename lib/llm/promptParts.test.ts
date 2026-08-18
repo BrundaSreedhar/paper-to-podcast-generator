@@ -5,9 +5,9 @@
  * produce output — grounded in nothing.
  */
 import { describe, it, expect } from "vitest";
-import { joinCacheableContext } from "./promptParts.js";
-import { buildMessageContent } from "./anthropic.js";
-import { estimateTokens } from "./contextGuard.js";
+import { joinCacheableContext } from "./promptParts";
+import { buildMessageContent } from "./anthropic";
+import { estimateTokens } from "./contextGuard";
 
 describe("joinCacheableContext", () => {
   it("prepends the prefix when present", () => {

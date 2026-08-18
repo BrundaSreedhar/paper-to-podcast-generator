@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { checkExpectation } from "./dataset.js";
+import { checkExpectation } from "./dataset";
 
 /**
  * `checkExpectation` decides whether judge validation passes. A bug here means

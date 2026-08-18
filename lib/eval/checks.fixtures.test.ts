@@ -5,9 +5,9 @@
  * would the checks have caught them without a human reading the transcript?
  */
 import { describe, it, expect, beforeAll } from "vitest";
-import { runDeterministicChecks } from "./checks.js";
-import { loadFixtures, loadPapers, loadPaper, type Fixture } from "./dataset.js";
-import type { PaperStructure } from "../pdf/extract.js";
+import { runDeterministicChecks } from "./checks";
+import { loadFixtures, loadPapers, loadPaper, type Fixture } from "./dataset";
+import type { PaperStructure } from "../pdf/extract";
 
 let fixtures: Fixture[];
 let aurora: PaperStructure | undefined;

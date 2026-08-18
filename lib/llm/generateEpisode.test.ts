@@ -4,9 +4,9 @@ import {
   estimateOutputTokens,
   buildUserContent,
   targetTurnCount,
-} from "./generateEpisode.js";
-import type { LLMProvider, StructuredRequest, StructuredResult } from "./types.js";
-import type { PaperStructure } from "../pdf/extract.js";
+} from "./generateEpisode";
+import type { LLMProvider, StructuredRequest, StructuredResult } from "./types";
+import type { PaperStructure } from "../pdf/extract";
 
 const PAPER: PaperStructure = {
   title: "A Test Paper",

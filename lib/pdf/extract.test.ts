@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parsePaperStructure, paperToText } from "./extract.js";
+import { parsePaperStructure, paperToText } from "./extract";
 
 // A realistic flattened-PDF fixture: title, authors, abstract, numbered
 // sections, figure/table noise, references, acknowledgments, appendix.

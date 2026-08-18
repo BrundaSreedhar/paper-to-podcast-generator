@@ -43,6 +43,16 @@ export const openaiConfig = () => ({
   ttsModel: opt("OPENAI_TTS_MODEL", "gpt-4o-mini-tts"),
 });
 
+/**
+ * Piper runs from a project-local virtualenv and voice models that live outside
+ * the repository, so both are configurable rather than assumed.
+ */
+export const piperConfig = () => ({
+  binary: opt("PIPER_BIN", ".venv-tts/bin/piper"),
+  hostVoice: opt("PIPER_HOST_VOICE", ".voices/en_US-lessac-medium.onnx"),
+  guestVoice: opt("PIPER_GUEST_VOICE", ".voices/en_US-ryan-medium.onnx"),
+});
+
 export const openConfig = () => ({
   baseURL: opt("OPEN_BASE_URL", "http://localhost:11434/v1"),
   // Local runtimes (Ollama) accept any non-empty key.

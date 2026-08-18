@@ -1,10 +1,10 @@
 import OpenAI from "openai";
 import { ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { openConfig } from "../config/env.js";
-import { assertNoSilentTruncation } from "./contextGuard.js";
-import { joinCacheableContext } from "./promptParts.js";
-import type { LLMProvider, StructuredRequest, StructuredResult, Usage } from "./types.js";
+import { openConfig } from "../config/env";
+import { assertNoSilentTruncation } from "./contextGuard";
+import { joinCacheableContext } from "./promptParts";
+import type { LLMProvider, StructuredRequest, StructuredResult, Usage } from "./types";
 
 const MAX_RETRIES = 3;
 

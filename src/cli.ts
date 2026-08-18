@@ -9,10 +9,10 @@
  */
 import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { extractPaper } from "../lib/pdf/extract.js";
-import { generateEpisode } from "../lib/llm/generateEpisode.js";
-import { getProvider } from "../lib/llm/index.js";
-import { activeProvider, type ProviderName } from "../lib/config/env.js";
+import { extractPaper } from "../lib/pdf/extract";
+import { generateEpisode } from "../lib/llm/generateEpisode";
+import { getProvider } from "../lib/llm/index";
+import { activeProvider, type ProviderName } from "../lib/config/env";
 
 interface Args {
   pdfPath: string;

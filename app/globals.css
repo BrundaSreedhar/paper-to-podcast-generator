@@ -1,0 +1,182 @@
+/*
+ * A reading interface, so the transcript is the design: comfortable measure,
+ * generous line height, and colour used only to say who is speaking and where
+ * playback has reached.
+ */
+:root {
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --ink: #1a1a1a;
+  --muted: #6b6b6b;
+  --faint: #9a9a9a;
+  --line: #e6e3de;
+  --host: #1f6f5c;
+  --guest: #7a4a86;
+  --accent: #1f6f5c;
+  --active-bg: #f1f7f4;
+  --error: #a3341f;
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141414;
+    --surface: #1c1c1c;
+    --ink: #ececec;
+    --muted: #a0a0a0;
+    --faint: #6f6f6f;
+    --line: #2c2c2c;
+    --host: #5fbfa3;
+    --guest: #c79ad4;
+    --accent: #5fbfa3;
+    --active-bg: #172723;
+    --error: #e08a76;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.65 ui-serif, Georgia, "Times New Roman", serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 6rem; }
+
+h1 {
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.25rem;
+}
+
+.sub { color: var(--muted); margin: 0 0 2rem; font-size: 0.95rem; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+/* ---- upload ---- */
+.drop {
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: var(--surface);
+}
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--active-bg); }
+.drop strong { display: block; margin-bottom: 0.35rem; }
+.drop span { color: var(--muted); font-size: 0.9rem; }
+
+.controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+.controls label { display: flex; gap: 0.4rem; align-items: center; color: var(--muted); }
+select, input[type="number"] {
+  font: inherit;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+button {
+  font: inherit;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.5; cursor: default; }
+button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+
+/* ---- progress ---- */
+.stages { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+.stage {
+  display: flex; align-items: center; gap: 0.6rem;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.88rem; color: var(--faint);
+}
+.stage.active { color: var(--ink); }
+.stage.complete { color: var(--muted); }
+.dot {
+  width: 0.5rem; height: 0.5rem; border-radius: 50%;
+  background: var(--line); flex: none;
+}
+.stage.active .dot { background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+.stage.complete .dot { background: var(--accent); }
+@keyframes pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .stage.active .dot { animation: none; } }
+
+.bar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: 1rem; }
+.bar > i { display: block; height: 100%; background: var(--accent); transition: width 0.4s ease; }
+
+/* ---- transcript ---- */
+.turn {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+  gap: 0.9rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  scroll-margin-top: 6rem;
+}
+.turn:hover { background: var(--active-bg); }
+.turn.active { background: var(--active-bg); }
+.turn.active .who::after { content: " ▸"; }
+.who {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-top: 0.28rem;
+  color: var(--host);
+}
+.turn[data-speaker="guest"] .who { color: var(--guest); }
+.turn p { margin: 0; }
+.turn.past p { color: var(--muted); }
+
+.player {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--bg);
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.5rem;
+}
+audio { width: 100%; }
+
+.meta {
+  display: flex; gap: 1.25rem; flex-wrap: wrap;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.8rem; color: var(--muted);
+  margin-top: 0.6rem;
+}
+.meta b { color: var(--ink); font-weight: 600; }
+
+.err {
+  border-left: 3px solid var(--error);
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-radius: 0 8px 8px 0;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+.err strong { color: var(--error); display: block; margin-bottom: 0.25rem; }

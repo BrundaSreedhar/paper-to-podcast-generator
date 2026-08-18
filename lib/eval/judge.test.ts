@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { renderDialogue, scoreFaithfulness } from "./judge.js";
-import type { ClaimVerdict } from "./types.js";
-import type { Episode } from "../llm/schema.js";
+import { renderDialogue, scoreFaithfulness } from "./judge";
+import type { ClaimVerdict } from "./types";
+import type { Episode } from "../llm/schema";
 
 const v = (
   verdict: ClaimVerdict["verdict"],

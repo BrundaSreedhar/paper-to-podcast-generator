@@ -12,10 +12,10 @@ import {
   checkTurnCount,
   checkWordCount,
   runDeterministicChecks,
-} from "./checks.js";
-import type { CheckContext } from "./types.js";
-import type { PaperStructure } from "../pdf/extract.js";
-import type { Episode } from "../llm/schema.js";
+} from "./checks";
+import type { CheckContext } from "./types";
+import type { PaperStructure } from "../pdf/extract";
+import type { Episode } from "../llm/schema";
 
 const PAPER: PaperStructure = {
   title: "Amazon Aurora: Design Considerations",

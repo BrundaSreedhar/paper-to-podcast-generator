@@ -9,14 +9,14 @@
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { runDeterministicChecks } from "../lib/eval/checks.js";
-import { loadPaper, loadPapers } from "../lib/eval/dataset.js";
-import { judgeEpisode } from "../lib/eval/judge.js";
-import { estimateCost, renderMarkdown } from "../lib/eval/report.js";
-import type { EvalResult } from "../lib/eval/types.js";
-import { generateEpisode } from "../lib/llm/generateEpisode.js";
-import { getProvider } from "../lib/llm/index.js";
-import { activeProvider, type ProviderName } from "../lib/config/env.js";
+import { runDeterministicChecks } from "../lib/eval/checks";
+import { loadPaper, loadPapers } from "../lib/eval/dataset";
+import { judgeEpisode } from "../lib/eval/judge";
+import { estimateCost, renderMarkdown } from "../lib/eval/report";
+import type { EvalResult } from "../lib/eval/types";
+import { generateEpisode } from "../lib/llm/generateEpisode";
+import { getProvider } from "../lib/llm/index";
+import { activeProvider, type ProviderName } from "../lib/config/env";
 
 const RESULTS_DIR = join(process.cwd(), "lib", "eval", "results");
 
